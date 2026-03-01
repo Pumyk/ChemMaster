@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface User {
-  id: number;
+  id: string;
   email: string;
-  name: string;
+  name?: string;
 }
 
 interface AuthContextType {
@@ -20,29 +22,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in
-    fetch('/api/auth/me')
-      .then(async res => {
-        if (res.ok) {
-          try {
-            return await res.json();
-          } catch (e) {
-            throw new Error('Invalid JSON response');
-          }
-        }
-        throw new Error('Not logged in');
-      })
-      .then(data => setUser(data.user))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0]
+        });
+      }
+      setLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0]
+        });
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = (userData: User) => {
+    // This is now handled by onAuthStateChange, but keeping for compatibility if needed
     setUser(userData);
   };
 
   const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await supabase.auth.signOut();
     setUser(null);
   };
 

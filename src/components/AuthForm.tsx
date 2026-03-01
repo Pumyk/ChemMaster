@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 import { LogIn, UserPlus, Loader2 } from 'lucide-react';
 
 export const AuthForm: React.FC = () => {
@@ -17,27 +18,32 @@ export const AuthForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
-      const body = isLogin ? { email, password } : { email, password, name };
+      if (isLogin) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+        if (error) throw error;
+        // AuthContext will handle the state update via onAuthStateChange
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: name,
+            },
+          },
+        });
 
-      let data;
-      try {
-        data = await res.json();
-      } catch (e) {
-        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+        if (error) throw error;
+        if (data.user && !data.session) {
+          setError('Please check your email for the confirmation link.');
+          setLoading(false);
+          return;
+        }
       }
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Authentication failed');
-      }
-
-      login(data.user);
     } catch (err: any) {
       setError(err.message);
     } finally {

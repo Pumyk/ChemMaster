@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Award, ChevronRight, Loader2, History } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 
 interface QuizResult {
   id: number;
@@ -7,7 +9,7 @@ interface QuizResult {
   topic_title: string;
   score: number;
   total: number;
-  answers: string; // JSON string
+  answers: string; // JSON string or object depending on how Supabase returns it
   created_at: string;
 }
 
@@ -18,14 +20,43 @@ interface QuizHistoryProps {
 export const QuizHistory: React.FC<QuizHistoryProps> = ({ onViewResult }) => {
   const [history, setHistory] = useState<QuizResult[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetch('/api/quiz/history')
-      .then(res => res.json())
-      .then(data => setHistory(data.history || []))
-      .catch(err => console.error("Failed to fetch history:", err))
-      .finally(() => setLoading(false));
-  }, []);
+    if (!user) return;
+
+    const fetchHistory = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('quiz_results')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        // Ensure answers is a string if it comes back as an object, or handle it in App.tsx
+        // App.tsx expects a JSON string for answers in handleViewPastResult: JSON.parse(result.answers)
+        // If Supabase returns an object (jsonb), we might need to stringify it or update App.tsx.
+        // Let's check App.tsx. It does JSON.parse(result.answers).
+        // If Supabase returns an object, JSON.parse([object Object]) will fail.
+        // So we should normalize it here.
+        
+        const normalizedHistory = (data || []).map(item => ({
+          ...item,
+          answers: typeof item.answers === 'string' ? item.answers : JSON.stringify(item.answers)
+        }));
+
+        setHistory(normalizedHistory);
+      } catch (err) {
+        console.error("Failed to fetch history:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [user]);
 
   if (loading) {
     return (

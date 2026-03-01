@@ -3,6 +3,8 @@ import { Topic } from '../data/questions';
 import { generatePDF } from '../utils/pdfGenerator';
 import { Download, RefreshCw, Home, Check, X, Loader2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface ResultsProps {
   topic: Topic;
@@ -16,24 +18,33 @@ interface ResultsProps {
 export const Results: React.FC<ResultsProps> = ({ topic, answers, score, onRetry, onHome, reviewOnly = false }) => {
   const percentage = Math.round((score / topic.questions.length) * 100);
   const { isDark } = useTheme();
+  const { user } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
   
   useEffect(() => {
-    if (reviewOnly) return;
+    if (reviewOnly || !user) return;
     
-    // Save results to database
-    fetch('/api/quiz/results', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topicId: topic.id,
-        topicTitle: topic.title,
-        score,
-        total: topic.questions.length,
-        answers
-      })
-    }).catch(err => console.error("Failed to save quiz results:", err));
-  }, [topic, score, answers, reviewOnly]);
+    const saveResults = async () => {
+      try {
+        const { error } = await supabase
+          .from('quiz_results')
+          .insert({
+            user_id: user.id,
+            topic_id: topic.id,
+            topic_title: topic.title,
+            score,
+            total: topic.questions.length,
+            answers: answers // Supabase handles JSON automatically
+          });
+          
+        if (error) throw error;
+      } catch (err) {
+        console.error("Failed to save quiz results:", err);
+      }
+    };
+
+    saveResults();
+  }, [topic, score, answers, reviewOnly, user]);
 
 
   let gradeColor = "text-red-500";
