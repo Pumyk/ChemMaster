@@ -7,7 +7,7 @@ import { QuizHistory } from './components/QuizHistory';
 import { Loading } from './components/Loading';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { BookOpen, FlaskConical, Sun, Moon, LogOut, History, Sparkles, Loader2, X, BrainCircuit, Signal, Zap } from 'lucide-react';
+import { BookOpen, FlaskConical, Sun, Moon, LogOut, History, Sparkles, Loader2, X } from 'lucide-react';
 import { generateQuestions } from './services/aiService';
 
 type AppState = 'home' | 'quiz' | 'results' | 'history';
@@ -15,7 +15,7 @@ type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
 function AppContent() {
   const [view, setView] = useState<AppState>('home');
-  // Initialize topics with difficulty assigned
+  // Initialize topics with difficulty assigned (kept for AI generation context, but selector removed)
   const [topics, setTopics] = useState<Topic[]>(() => {
     return initialTopics.map(topic => ({
       ...topic,
@@ -34,8 +34,7 @@ function AppContent() {
   const [quizResults, setQuizResults] = useState<{ answers: Record<number, number>; score: number; reviewOnly?: boolean } | null>(null);
   const [isQuizLoading, setIsQuizLoading] = useState(false);
   const [generatingTopicId, setGeneratingTopicId] = useState<string | null>(null);
-  const [showDifficultyModal, setShowDifficultyModal] = useState(false);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('Medium');
+  // Removed difficulty modal state
   const [aiDifficulty, setAiDifficulty] = useState<Difficulty>('Hard');
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiTargetTopic, setAiTargetTopic] = useState<Topic | null>(null);
@@ -43,32 +42,14 @@ function AppContent() {
   const { user, logout, loading } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
-  const handleTopicClick = (topic: Topic) => {
+  const startQuiz = (topic: Topic) => {
     setSelectedTopic(topic);
-    setShowDifficultyModal(true);
-  };
-
-  const startQuiz = () => {
-    if (!selectedTopic) return;
-    
-    // Filter questions based on difficulty
-    const filteredQuestions = selectedTopic.questions.filter(q => q.difficulty === selectedDifficulty);
-    
-    // If no questions match, maybe fallback to all or show error? 
-    // For now, let's just use what we have, or if empty, use all.
-    const questionsToUse = filteredQuestions.length > 0 ? filteredQuestions : selectedTopic.questions;
-
-    const topicWithFilteredQuestions = {
-      ...selectedTopic,
-      questions: questionsToUse
-    };
-
-    setShowDifficultyModal(false);
     setIsQuizLoading(true);
     
     // Catchy loading delay
     setTimeout(() => {
-      setSelectedTopic(topicWithFilteredQuestions);
+      // Use all questions for the topic
+      setSelectedTopic(topic);
       setView('quiz');
       setIsQuizLoading(false);
     }, 1500);
@@ -84,12 +65,9 @@ function AppContent() {
     if (topic) {
       const parsedAnswers = JSON.parse(result.answers);
       // Filter questions to only those that were answered (or attempted)
-      // This ensures we don't show all questions (Easy/Medium/Hard) when reviewing a specific difficulty quiz
       const questionIds = Object.keys(parsedAnswers).map(Number);
       const filteredQuestions = topic.questions.filter(q => questionIds.includes(q.id));
       
-      // If no questions matched (e.g. empty answers), maybe show all or just empty?
-      // Let's use filtered if available, otherwise topic.questions (fallback)
       const questionsToUse = filteredQuestions.length > 0 ? filteredQuestions : topic.questions;
 
       const topicWithHistoryQuestions = {
@@ -121,25 +99,35 @@ function AppContent() {
     
     setShowAiModal(false);
     setGeneratingTopicId(topicId);
+    setIsQuizLoading(true); // Show loading state immediately
     
     try {
-      const newQuestions = await generateQuestions(topicTitle, 5, aiDifficulty);
+      // Generate 10 questions for a full quiz experience
+      const newQuestions = await generateQuestions(topicTitle, 10, aiDifficulty);
       const questionsWithDifficulty = newQuestions.map(q => ({ ...q, difficulty: aiDifficulty }));
       
-      setTopics(prev => prev.map(t => {
-        if (t.id === topicId) {
-          return {
-            ...t,
-            questions: [...t.questions, ...questionsWithDifficulty]
-          };
-        }
-        return t;
-      }));
+      // Create a temporary topic with ONLY the AI questions
+      const aiQuizTopic: Topic = {
+        ...aiTargetTopic,
+        title: `${aiTargetTopic.title} (AI Generated - ${aiDifficulty})`,
+        questions: questionsWithDifficulty
+      };
+
+      // Start the quiz with these questions
+      setSelectedTopic(aiQuizTopic);
+      setView('quiz');
+      
+      // Optionally add them to the main pool as well, or keep them separate?
+      // User asked to use AI questions "instead of" database ones.
+      // So we just start the quiz with them.
+      
     } catch (error) {
       console.error("AI Generation failed:", error);
+      alert("Failed to generate AI quiz. Please try again.");
     } finally {
       setGeneratingTopicId(null);
       setAiTargetTopic(null);
+      setIsQuizLoading(false);
     }
   };
 
@@ -157,9 +145,10 @@ function AppContent() {
         <div className="absolute top-4 right-4">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-lg bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-md transition-colors"
+            className="p-2 rounded-lg bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-md transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
           </button>
         </div>
         <div className="mb-8 text-center">
@@ -178,51 +167,6 @@ function AppContent() {
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors relative">
       {isQuizLoading && <Loading />}
       
-      {/* Difficulty Selection Modal */}
-      {showDifficultyModal && selectedTopic && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Select Difficulty</h3>
-              <button onClick={() => setShowDifficultyModal(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
-                <X className="w-5 h-5 text-slate-500" />
-              </button>
-            </div>
-            
-            <div className="space-y-3 mb-8">
-              {(['Easy', 'Medium', 'Hard'] as Difficulty[]).map((diff) => (
-                <button
-                  key={diff}
-                  onClick={() => setSelectedDifficulty(diff)}
-                  className={`w-full p-4 rounded-xl border-2 flex items-center justify-between transition-all ${
-                    selectedDifficulty === diff 
-                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' 
-                      : 'border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 text-slate-600 dark:text-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {diff === 'Easy' && <Signal className="w-5 h-5" />}
-                    {diff === 'Medium' && <Zap className="w-5 h-5" />}
-                    {diff === 'Hard' && <BrainCircuit className="w-5 h-5" />}
-                    <span className="font-semibold">{diff}</span>
-                  </div>
-                  <span className="text-sm opacity-70">
-                    {selectedTopic.questions.filter(q => q.difficulty === diff).length} Questions
-                  </span>
-                </button>
-              ))}
-            </div>
-            
-            <button
-              onClick={startQuiz}
-              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 transition-all transform active:scale-[0.98]"
-            >
-              Start Quiz
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* AI Generation Modal */}
       {showAiModal && aiTargetTopic && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
@@ -235,7 +179,7 @@ function AppContent() {
             </div>
             
             <p className="text-slate-600 dark:text-slate-400 mb-6">
-              Generate 5 new questions for <span className="font-semibold text-slate-900 dark:text-white">{aiTargetTopic.title}</span> using AI.
+              Generate a unique 10-question quiz for <span className="font-semibold text-slate-900 dark:text-white">{aiTargetTopic.title}</span> using AI.
             </p>
 
             <div className="space-y-3 mb-8">
@@ -300,6 +244,7 @@ function AppContent() {
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
@@ -332,7 +277,7 @@ function AppContent() {
               {topics.map((topic) => (
                 <div 
                   key={topic.id}
-                  onClick={() => handleTopicClick(topic)}
+                  onClick={() => startQuiz(topic)}
                   className="group relative bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all cursor-pointer hover:shadow-xl hover:shadow-blue-900/5 dark:hover:shadow-blue-900/20 overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
@@ -344,26 +289,32 @@ function AppContent() {
                       <span className="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-full">
                         {topic.questions.length} Questions
                       </span>
-                      <button
-                        onClick={(e) => openAiModal(e, topic)}
-                        disabled={generatingTopicId === topic.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-lg hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors disabled:opacity-50"
-                        title="Generate 5 more questions with AI"
-                      >
-                        {generatingTopicId === topic.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-3.5 h-3.5" />
-                        )}
-                        {generatingTopicId === topic.id ? 'Generating...' : 'AI Add'}
-                      </button>
                     </div>
                     <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {topic.title}
                     </h3>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                    <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
                       Test your knowledge on {topic.title.toLowerCase()} with our comprehensive assessment.
                     </p>
+                    
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startQuiz(topic);
+                        }}
+                        className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm transition-colors shadow-md shadow-blue-600/20"
+                      >
+                        Start Standard Quiz
+                      </button>
+                      <button
+                        onClick={(e) => openAiModal(e, topic)}
+                        className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-sm transition-colors shadow-md shadow-amber-500/20 flex items-center justify-center gap-1"
+                      >
+                        <Sparkles className="w-4 h-4" />
+                        AI Quiz
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -383,7 +334,7 @@ function AppContent() {
             topic={selectedTopic}
             answers={quizResults.answers}
             score={quizResults.score}
-            onRetry={() => handleTopicClick(selectedTopic)}
+            onRetry={() => startQuiz(selectedTopic)}
             onHome={() => setView('home')}
             reviewOnly={quizResults.reviewOnly}
           />
