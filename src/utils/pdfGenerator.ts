@@ -108,8 +108,9 @@ export const generatePDF = async (topic: Topic, userAnswers: Record<number, numb
     if (element) {
       try {
         // Capture using modern-screenshot (supports oklch)
+        // Optimize: Use scale 1.5 instead of 2 to reduce resolution slightly but keep legibility
         const canvas = await domToCanvas(element, {
-          scale: 2,
+          scale: 1.5,
           backgroundColor: isDark ? '#1e293b' : '#ffffff',
           width: 800,
           style: {
@@ -121,7 +122,9 @@ export const generatePDF = async (topic: Topic, userAnswers: Record<number, numb
           }
         });
         
-        const imgData = canvas.toDataURL('image/png');
+        // Optimize: Use JPEG with 0.7 quality instead of PNG
+        // This significantly reduces file size for complex images
+        const imgData = canvas.toDataURL('image/jpeg', 0.7);
         const imgWidth = contentWidth;
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
@@ -136,7 +139,8 @@ export const generatePDF = async (topic: Topic, userAnswers: Record<number, numb
         // Add a subtle border around the image in the PDF
         doc.setDrawColor(colors.cardBorder[0], colors.cardBorder[1], colors.cardBorder[2]);
         doc.rect(margin, yPos, imgWidth, imgHeight);
-        doc.addImage(imgData, 'PNG', margin, yPos, imgWidth, imgHeight);
+        // Use JPEG format for addImage
+        doc.addImage(imgData, 'JPEG', margin, yPos, imgWidth, imgHeight, undefined, 'FAST');
         
         yPos += imgHeight + 8;
       } catch (err) {
