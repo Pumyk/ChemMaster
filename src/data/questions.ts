@@ -4,6 +4,7 @@ export interface Question {
   options: string[];
   correctAnswer: number; // Index of the correct option
   explanation: string;
+  difficulty?: 'Easy' | 'Medium' | 'Hard';
 }
 
 export interface Topic {

@@ -3,13 +3,20 @@ import { Question } from "../data/questions";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-export async function generateQuestions(topicTitle: string, count: number = 5): Promise<Question[]> {
+export async function generateQuestions(topicTitle: string, count: number = 5, difficulty: 'Easy' | 'Medium' | 'Hard' = 'Medium'): Promise<Question[]> {
+  const difficultyPrompt = {
+    'Easy': "Focus on basic definitions, simple concepts, and direct facts.",
+    'Medium': "Focus on application of concepts, standard calculations, and understanding relationships.",
+    'Hard': "Focus on complex multi-step problems, deep conceptual understanding, advanced calculations, and critical thinking. University-level chemistry."
+  };
+
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Generate ${count} advanced, university-level multiple-choice questions about "${topicTitle}" for a first-year university chemistry quiz. 
-    The questions should be challenging and require deep understanding of the concepts, including quantitative problems where appropriate.
+    contents: `Generate ${count} multiple-choice questions about "${topicTitle}" for a chemistry quiz.
+    The difficulty level should be: ${difficulty}.
+    ${difficultyPrompt[difficulty]}
     Each question must have 4 options and exactly one correct answer.
-    Provide a detailed explanation for the correct answer, including any necessary calculations or reasoning.
+    Provide a detailed explanation for the correct answer.
     Return the result as a JSON array of objects with the following structure:
     {
       "text": "The question text",
