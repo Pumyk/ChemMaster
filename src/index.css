@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+body {
+  @apply bg-slate-900 text-slate-100 min-h-screen;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(17, 24, 39, 1) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, rgba(30, 58, 138, 0.3) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, rgba(17, 24, 39, 1) 0, transparent 50%);
+  background-attachment: fixed;
+}
