@@ -1,11 +1,19 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FlaskConical, BookOpen, Brain, History, ArrowRight, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
 export const LandingPage = () => {
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors flex flex-col">

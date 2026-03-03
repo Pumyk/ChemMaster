@@ -209,10 +209,19 @@ export const AuthForm: React.FC = () => {
           onClick={async () => {
             setLoading(true);
             try {
+              // Get the current origin without a trailing slash
+              const redirectUrl = window.location.origin;
+              console.log('Current Origin:', window.location.origin);
+              console.log('Using Redirect URL:', redirectUrl);
+              
               const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                  redirectTo: `${window.location.origin}/`,
+                  redirectTo: redirectUrl,
+                  queryParams: {
+                    access_type: 'offline',
+                    prompt: 'consent',
+                  },
                 },
               });
               if (error) throw error;
