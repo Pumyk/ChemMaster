@@ -11,6 +11,8 @@ import { Dashboard } from './components/Dashboard';
 import { Profile } from './components/Profile';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
+import { LandingPage } from './components/LandingPage';
+import { LoginPage } from './components/LoginPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { BookOpen, FlaskConical, Sun, Moon, LogOut, History, Sparkles, X, LayoutDashboard, User, Shield, FileText } from 'lucide-react';
@@ -53,7 +55,7 @@ const Navbar = () => {
         
         <div className="flex items-center gap-2 md:gap-4">
           <NavLink 
-            to="/"
+            to="/dashboard"
             className={({ isActive }) => `px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isActive ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
           >
             <LayoutDashboard className="w-4 h-4" />
@@ -104,30 +106,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (loading) return <Loading />;
   
   if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-4 transition-colors">
-        <div className="absolute top-4 right-4">
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 shadow-md transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {isDark ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
-          </button>
-        </div>
-        <div className="w-full max-w-md">
-          <div className="mb-8 text-center">
-            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-600/20">
-              <FlaskConical className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">ChemMaster Pro</h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-2">Sign in to start your journey</p>
-          </div>
-          <AuthForm />
-          <Footer />
-        </div>
-      </div>
-    );
+    return <Navigate to="/login" replace />;
   }
 
   return (
@@ -401,7 +380,9 @@ export default function App() {
       <ThemeProvider>
         <Router>
           <Routes>
-            <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
             <Route path="/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
