@@ -119,6 +119,9 @@ export const generatePDF = async (topic: Topic, userAnswers: Record<number, numb
             borderRadius: '0px',
             border: 'none',
             boxShadow: 'none',
+            // Force text color to ensure visibility against background
+            color: isDark ? '#ffffff' : '#000000',
+            fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
           }
         });
         
