@@ -2,8 +2,10 @@ import React from 'react';
 import { AuthForm } from './AuthForm';
 import { FlaskConical, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Shield, FileText } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Loading } from './Loading';
 
 const Footer = () => (
   <footer className="py-6 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 mt-auto">
@@ -22,6 +24,15 @@ const Footer = () => (
 export const LoginPage = () => {
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <Loading />;
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-4 transition-colors">
