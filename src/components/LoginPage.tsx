@@ -2,7 +2,7 @@ import React from 'react';
 import { AuthForm } from './AuthForm';
 import { FlaskConical, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Shield, FileText } from 'lucide-react';
 
 const Footer = () => (
@@ -21,6 +21,7 @@ const Footer = () => (
 
 export const LoginPage = () => {
   const { isDark, toggleTheme } = useTheme();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-4 transition-colors">
@@ -34,7 +35,7 @@ export const LoginPage = () => {
         </button>
       </div>
       <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
+        <div className="mb-8 text-center cursor-pointer" onClick={() => navigate('/')}>
           <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-600/20">
             <FlaskConical className="w-8 h-8 text-white" />
           </div>

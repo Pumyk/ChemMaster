@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { FlaskConical, BookOpen, Brain, History, ArrowRight, Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
@@ -12,7 +12,10 @@ export const LandingPage = () => {
       {/* Header */}
       <header className="border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div 
+            className="flex items-center gap-2 cursor-pointer" 
+            onClick={() => navigate('/')}
+          >
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-blue-600/20">
               <FlaskConical className="w-5 h-5 text-white" />
             </div>
@@ -93,8 +96,8 @@ export const LandingPage = () => {
           &copy; {new Date().getFullYear()} ChemMaster Pro. All rights reserved.
         </p>
         <div className="flex justify-center gap-6 mt-4 text-sm">
-           <button onClick={() => navigate('/privacy')} className="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy Policy</button>
-           <button onClick={() => navigate('/terms')} className="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms of Service</button>
+           <Link to="/privacy" className="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Privacy Policy</Link>
+           <Link to="/terms" className="text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Terms of Service</Link>
         </div>
       </footer>
     </div>
