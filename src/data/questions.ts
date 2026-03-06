@@ -20,38 +20,38 @@ export const topics: Topic[] = [
     questions: [
       {
         id: 1,
-        text: "Which of the following is a characteristic of a heterogeneous mixture?",
-        options: ["Uniform composition throughout", "Components are in the same phase", "Components can be separated by physical means", "The mixture has a single set of properties"],
-        correctAnswer: 2,
-        explanation: "Heterogeneous mixtures have non-uniform compositions and their components can typically be separated using physical methods like filtration or decantation."
+        text: "Which of the following best distinguishes a heterogeneous mixture from a homogeneous mixture?",
+        options: ["It can be separated by physical means", "Its composition varies from one region to another", "It is always a solid", "It is transparent"],
+        correctAnswer: 1,
+        explanation: "Heterogeneous mixtures have non-uniform compositions where the components can be visually distinguished, unlike homogeneous mixtures which are uniform throughout."
       },
       {
         id: 2,
-        text: "In the reaction 2H₂ + O₂ → 2H₂O, if 4 grams of H₂ reacts with 32 grams of O₂, what is the limiting reactant?",
+        text: "In the reaction 2H₂ + O₂ → 2H₂O, if 5.0 grams of H₂ reacts with 32.0 grams of O₂, what is the limiting reactant?",
         options: ["H₂", "O₂", "H₂O", "Neither"],
-        correctAnswer: 3,
-        explanation: "4g H₂ is 2 moles. 32g O₂ is 1 mole. The stoichiometric ratio is 2:1, so both are consumed completely. Neither is limiting."
+        correctAnswer: 1,
+        explanation: "5g H₂ is 2.5 moles. 32g O₂ is 1 mole. The reaction requires 2 moles of H₂ for every 1 mole of O₂. Since we have 2.5 moles of H₂ (excess) for 1 mole of O₂, O₂ is the limiting reactant."
       },
       {
         id: 3,
-        text: "Which of the following processes is exothermic?",
-        options: ["Sublimation of dry ice", "Evaporation of water", "Combustion of methane", "Melting of iron"],
+        text: "Which of the following thermodynamic processes is always exothermic?",
+        options: ["Bond breaking", "Sublimation", "Combustion", "Fusion"],
         correctAnswer: 2,
-        explanation: "Combustion reactions release energy to the surroundings, making them exothermic (ΔH < 0)."
+        explanation: "Combustion reactions release energy to the surroundings (ΔH < 0). Bond breaking, sublimation, and fusion (melting) are endothermic processes."
       },
       {
         id: 4,
-        text: "What is the mass percentage of Oxygen in Ethanol (C₂H₅OH)? (Molar masses: C=12, H=1, O=16)",
-        options: ["34.8%", "52.2%", "13.0%", "46.0%"],
+        text: "What is the mass percentage of Oxygen in Acetic Acid (CH₃COOH)? (Molar masses: C=12, H=1, O=16)",
+        options: ["53.3%", "34.8%", "40.0%", "26.7%"],
         correctAnswer: 0,
-        explanation: "Molar mass of C₂H₅OH = 2(12) + 6(1) + 16 = 46 g/mol. %O = (16/46) * 100 ≈ 34.8%."
+        explanation: "Molar mass of CH₃COOH = 2(12) + 4(1) + 2(16) = 60 g/mol. Mass of Oxygen = 32 g. %O = (32/60) * 100 = 53.3%."
       },
       {
         id: 5,
-        text: "Which of the following is an intensive property of matter?",
-        options: ["Internal energy", "Enthalpy", "Molar heat capacity", "Entropy"],
+        text: "Which of the following properties is intensive and independent of the amount of substance?",
+        options: ["Heat capacity", "Enthalpy", "Specific heat capacity", "Gibbs free energy"],
         correctAnswer: 2,
-        explanation: "Molar heat capacity is intensive because it is defined per mole of substance, making it independent of the total amount."
+        explanation: "Specific heat capacity is defined per unit mass, making it an intensive property. Heat capacity, Enthalpy, and Gibbs free energy depend on the amount of substance (extensive)."
       },
       {
         id: 6,

@@ -2,14 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Trophy, Clock, BookOpen, Activity, Play, BarChart3 } from 'lucide-react';
+import { Subject, Course } from '../data/subjects';
 
 interface DashboardProps {
-  onStartExam: () => void;
-  onSelectCourse: (course: 'CHM111' | 'CHM117') => void;
-  currentCourse: 'CHM111' | 'CHM117';
+  subject: Subject;
+  onStartExam: (course: Course) => void;
+  onSelectCourse: (course: Course) => void;
+  currentCourse: Course;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ onStartExam, onSelectCourse, currentCourse }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ subject, onStartExam, onSelectCourse, currentCourse }) => {
   const { user } = useAuth();
   const [stats, setStats] = useState({
     totalQuizzes: 0,
@@ -60,35 +62,41 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartExam, onSelectCours
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
       {/* Welcome Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-            Welcome back, {user?.user_metadata?.name || 'Student'}!
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Ready to master your chemistry courses?
-          </p>
+        <div className="flex items-center gap-4">
+          {user?.user_metadata?.avatar_url ? (
+            <img 
+              src={user.user_metadata.avatar_url} 
+              alt="Profile" 
+              className="w-16 h-16 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-md"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center border-2 border-slate-100 dark:border-slate-700 shadow-md overflow-hidden">
+              <img src="/logo.svg" alt="Profile" className="w-full h-full object-cover" />
+            </div>
+          )}
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+              Welcome back, {user?.user_metadata?.name || 'Student'}!
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400 mt-1">
+              Ready to master your {subject.title} courses?
+            </p>
+          </div>
         </div>
-        <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-          <button
-            onClick={() => onSelectCourse('CHM111')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              currentCourse === 'CHM111'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-            }`}
-          >
-            CHM 111
-          </button>
-          <button
-            onClick={() => onSelectCourse('CHM117')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              currentCourse === 'CHM117'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-            }`}
-          >
-            CHM 117
-          </button>
+        <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-x-auto max-w-full">
+          {subject.courses.map((course) => (
+            <button
+              key={course.id}
+              onClick={() => onSelectCourse(course)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                currentCourse.id === course.id
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+              }`}
+            >
+              {course.id}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -150,17 +158,28 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartExam, onSelectCours
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready for the real challenge?</h2>
           <p className="text-slate-300 text-lg mb-8">
-            Simulate a real exam environment. 25 randomized questions from both CHM 111 and CHM 117. 
-            15 minutes on the clock. No pauses.
+            Simulate a real exam environment. 
+            <br />
+            {subject.courses.map(course => (
+              <React.Fragment key={course.id}>
+                <strong>{course.id}:</strong> {course.topics.length > 5 ? '35' : '15'} questions in {course.topics.length > 5 ? '30' : '10'} minutes.
+                <br />
+              </React.Fragment>
+            ))}
           </p>
           
-          <button
-            onClick={onStartExam}
-            className="px-8 py-4 bg-white text-slate-900 hover:bg-slate-100 rounded-xl font-bold text-lg transition-all shadow-lg shadow-white/10 flex items-center gap-2 transform hover:scale-105 active:scale-95"
-          >
-            <Play className="w-5 h-5" />
-            Start Mock Exam
-          </button>
+          <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+            {subject.courses.map((course) => (
+              <button
+                key={course.id}
+                onClick={() => onStartExam(course)}
+                className="px-6 py-4 bg-white text-slate-900 hover:bg-slate-100 rounded-xl font-bold text-lg transition-all shadow-lg shadow-white/10 flex items-center justify-center gap-2 transform hover:scale-105 active:scale-95"
+              >
+                <Play className="w-5 h-5" />
+                Start {course.id} Exam
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

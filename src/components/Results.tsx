@@ -10,13 +10,15 @@ interface ResultsProps {
   topic: Topic;
   answers: Record<number, number>;
   score: number;
+  totalQuestions?: number;
   onRetry: () => void;
   onHome: () => void;
   reviewOnly?: boolean;
 }
 
-export const Results: React.FC<ResultsProps> = ({ topic, answers, score, onRetry, onHome, reviewOnly = false }) => {
-  const percentage = Math.round((score / topic.questions.length) * 100);
+export const Results: React.FC<ResultsProps> = ({ topic, answers, score, totalQuestions, onRetry, onHome, reviewOnly = false }) => {
+  const total = totalQuestions || topic.questions.length;
+  const percentage = Math.round((score / total) * 100);
   const { isDark } = useTheme();
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = React.useState(false);
@@ -33,7 +35,7 @@ export const Results: React.FC<ResultsProps> = ({ topic, answers, score, onRetry
             topic_id: topic.id,
             topic_title: topic.title,
             score,
-            total: topic.questions.length,
+            total: total,
             answers: answers // Supabase handles JSON automatically
           });
           
@@ -69,7 +71,7 @@ export const Results: React.FC<ResultsProps> = ({ topic, answers, score, onRetry
           <div className={`absolute inset-0 rounded-full border-8 ${gradeColor.replace('text', 'border')} opacity-20`}></div>
           <div className="text-center z-10">
             <span className={`text-5xl font-bold ${gradeColor}`}>{percentage}%</span>
-            <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">{score} / {topic.questions.length}</p>
+            <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">{score} / {total}</p>
           </div>
         </div>
 
@@ -80,7 +82,7 @@ export const Results: React.FC<ResultsProps> = ({ topic, answers, score, onRetry
             onClick={async () => {
               setIsGenerating(true);
               try {
-                await generatePDF(topic, answers, score, topic.questions.length, isDark);
+                await generatePDF(topic, answers, score, total, isDark);
               } finally {
                 setIsGenerating(false);
               }

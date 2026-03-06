@@ -9,18 +9,19 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved ? saved === 'dark' : true;
+    const saved = localStorage.getItem('theme_preference');
+    // Default to light mode (false) if no theme is saved
+    return saved ? saved === 'dark' : false;
   });
 
   useEffect(() => {
     // Apply theme class to html element
     if (isDark) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
+      localStorage.setItem('theme_preference', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
+      localStorage.setItem('theme_preference', 'light');
     }
   }, [isDark]);
 

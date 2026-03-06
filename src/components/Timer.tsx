@@ -7,10 +7,42 @@ interface TimerProps {
 }
 
 export const Timer: React.FC<TimerProps> = ({ timeLeft, setTimeLeft, onTimeUp }) => {
+  const playTickSound = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      // High pitch "tick"
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      
+      // Short duration
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.1);
+    } catch (e) {
+      console.error("Audio play failed", e);
+    }
+  };
+
   useEffect(() => {
     if (timeLeft <= 0) {
       onTimeUp();
       return;
+    }
+
+    // Play sound if time is running out (last 60 seconds)
+    if (timeLeft <= 60) {
+      playTickSound();
     }
 
     const timerId = setInterval(() => {
@@ -27,7 +59,7 @@ export const Timer: React.FC<TimerProps> = ({ timeLeft, setTimeLeft, onTimeUp })
   };
 
   return (
-    <div className={`text-xl font-mono font-bold p-3 rounded-lg border ${timeLeft < 60 ? 'text-red-500 border-red-500 animate-pulse' : 'text-emerald-400 border-emerald-500/30'}`}>
+    <div className={`text-xl font-mono font-bold p-3 rounded-lg border transition-colors duration-300 ${timeLeft < 60 ? 'text-red-500 border-red-500 animate-pulse bg-red-50 dark:bg-red-900/20' : 'text-emerald-400 border-emerald-500/30'}`}>
       Time Left: {formatTime(timeLeft)}
     </div>
   );

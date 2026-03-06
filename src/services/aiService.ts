@@ -1,18 +1,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "../data/questions";
+import { getGemini } from "../lib/gemini";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-
-export async function generateQuestions(topicTitle: string, count: number = 5, difficulty: 'Easy' | 'Medium' | 'Hard' = 'Medium'): Promise<Question[]> {
+export async function generateQuestions(topicTitle: string, subject: string, count: number = 5, difficulty: 'Easy' | 'Medium' | 'Hard' = 'Medium'): Promise<Question[]> {
+  const ai = getGemini();
   const difficultyPrompt = {
     'Easy': "Focus on basic definitions, simple concepts, and direct facts.",
     'Medium': "Focus on application of concepts, standard calculations, and understanding relationships.",
-    'Hard': "Focus on complex multi-step problems, deep conceptual understanding, advanced calculations, and critical thinking. University-level chemistry."
+    'Hard': "Focus on complex multi-step problems, deep conceptual understanding, advanced calculations, and critical thinking. University-level."
   };
 
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
-    contents: `Generate ${count} multiple-choice questions about "${topicTitle}" for a chemistry quiz.
+    contents: `Generate ${count} multiple-choice questions about "${topicTitle}" for a ${subject} quiz.
     The difficulty level should be: ${difficulty}.
     ${difficultyPrompt[difficulty]}
     Each question must have 4 options and exactly one correct answer.

@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation, Link, NavLink } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation, Link, NavLink, useParams } from 'react-router-dom';
 import { topics as chm111Topics, Topic } from './data/questions';
 import { chm117Topics } from './data/chm117';
+import { subjects, Subject, Course } from './data/subjects';
 import { QuizInterface } from './components/QuizInterface';
 import { Results } from './components/Results';
-import { AuthForm } from './components/AuthForm';
 import { QuizHistory } from './components/QuizHistory';
 import { Loading } from './components/Loading';
 import { Dashboard } from './components/Dashboard';
+import { SubjectSelectionPage } from './components/SubjectSelectionPage';
 import { Profile } from './components/Profile';
 import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
@@ -15,142 +16,72 @@ import { LandingPage } from './components/LandingPage';
 import { LoginPage } from './components/LoginPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { BookOpen, FlaskConical, Sun, Moon, LogOut, History, Sparkles, X, LayoutDashboard, User, Shield, FileText } from 'lucide-react';
+import { BookOpen, FlaskConical, Sun, Moon, LogOut, History, Sparkles, X, LayoutDashboard, User, Shield, FileText, ArrowLeft } from 'lucide-react';
 import { generateQuestions } from './services/aiService';
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { Navbar } from './components/Navbar';
+import { Footer } from './components/Footer';
+import { MigrationTool } from './components/MigrationTool';
+
 // --- Components for Pages ---
 
-const Footer = () => (
-  <footer className="py-6 text-center text-sm text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 mt-auto">
-    <div className="flex justify-center gap-6 mb-4">
-      <Link to="/privacy" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1">
-        <Shield className="w-3 h-3" /> Privacy Policy
-      </Link>
-      <Link to="/terms" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1">
-        <FileText className="w-3 h-3" /> Terms of Service
-      </Link>
-    </div>
-    <p>&copy; {new Date().getFullYear()} ChemMaster Pro. All rights reserved.</p>
-  </footer>
-);
 
-const Navbar = () => {
-  const { logout } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
-  const navigate = useNavigate();
 
-  return (
-    <nav className="border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/50 backdrop-blur-md sticky top-0 z-40 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-blue-600/20">
-            <FlaskConical className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400">
-            ChemMaster Pro
-          </span>
-        </div>
-        
-        <div className="flex items-center gap-2 md:gap-4">
-          <NavLink 
-            to="/dashboard"
-            className={({ isActive }) => `px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isActive ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
-          >
-            <LayoutDashboard className="w-4 h-4" />
-            <span className="hidden sm:inline">Dashboard</span>
-          </NavLink>
-          <NavLink 
-            to="/history"
-            className={({ isActive }) => `px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isActive ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
-          >
-            <History className="w-4 h-4" />
-            <span className="hidden sm:inline">History</span>
-          </NavLink>
-          <NavLink 
-            to="/profile"
-            className={({ isActive }) => `px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${isActive ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
-          >
-            <User className="w-4 h-4" />
-            <span className="hidden sm:inline">Profile</span>
-          </NavLink>
-          
-          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
-            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
 
-          <button 
-            onClick={logout}
-            className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-            title="Logout"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-    </nav>
-  );
-};
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
-
-  if (loading) return <Loading />;
-  
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors">
-      <Navbar />
-      <main className="flex-1 container mx-auto px-4 py-8">
-        {children}
-      </main>
-      <Footer />
-    </div>
-  );
-};
 
 // --- Page Components ---
 
 const DashboardPage = () => {
+  const { subjectId } = useParams<{ subjectId: string }>();
   const navigate = useNavigate();
-  const [currentCourse, setCurrentCourse] = useState<'CHM111' | 'CHM117'>('CHM111');
-  const allTopics = [...chm111Topics, ...chm117Topics];
-  const displayedTopics = currentCourse === 'CHM111' ? chm111Topics : chm117Topics;
+  
+  const subject = subjects.find(s => s.id === subjectId);
+  const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
   
   const [showAiModal, setShowAiModal] = useState(false);
   const [aiTargetTopic, setAiTargetTopic] = useState<Topic | null>(null);
   const [aiDifficulty, setAiDifficulty] = useState<Difficulty>('Hard');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const startExam = () => {
+  useEffect(() => {
+    if (subject && subject.courses.length > 0) {
+      setCurrentCourse(subject.courses[0]);
+    }
+  }, [subject]);
+
+  if (!subject) return <Navigate to="/dashboard" />;
+  if (!currentCourse) return <Loading />;
+
+  const displayedTopics = currentCourse.topics;
+
+  const startExam = (course: Course) => {
     // 1. Collect ALL questions
-    const allQuestions = allTopics.flatMap(t => t.questions);
+    const allQuestions = course.topics.flatMap(t => t.questions);
+    
     // 2. Shuffle
     for (let i = allQuestions.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
     }
-    // 3. Select 25
-    const examQuestions = allQuestions.slice(0, 25);
+    
+    // 3. Configure Exam Settings
+    const questionCount = course.topics.length > 5 ? 35 : 15;
+    const timeLimit = course.topics.length > 5 ? 30 * 60 : 10 * 60; // 30 mins or 10 mins
+    
+    const examQuestions = allQuestions.slice(0, questionCount);
     
     const examTopic: Topic = {
-      id: `exam-${Date.now()}`,
-      title: "Comprehensive Exam (CHM 111 & 117)",
+      id: `exam-${course.id}-${Date.now()}`,
+      title: `Comprehensive Exam (${course.id})`,
       questions: examQuestions
     };
     
-    navigate('/quiz', { state: { topic: examTopic } });
+    navigate('/quiz', { state: { topic: examTopic, initialTime: timeLimit } });
   };
 
   const openAiModal = (e: React.MouseEvent, topic: Topic) => {
@@ -163,7 +94,7 @@ const DashboardPage = () => {
     if (!aiTargetTopic) return;
     setIsGenerating(true);
     try {
-      const newQuestions = await generateQuestions(aiTargetTopic.title, 10, aiDifficulty);
+      const newQuestions = await generateQuestions(aiTargetTopic.title, subject.title, 10, aiDifficulty);
       const questionsWithDifficulty = newQuestions.map(q => ({ ...q, difficulty: aiDifficulty }));
       
       const aiQuizTopic: Topic = {
@@ -184,6 +115,14 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-12">
+      <button 
+        onClick={() => navigate('/dashboard')}
+        className="flex items-center gap-2 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors mb-4"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Subjects
+      </button>
+
       {isGenerating && <Loading />}
       
       {/* AI Modal */}
@@ -229,6 +168,7 @@ const DashboardPage = () => {
       )}
 
       <Dashboard 
+        subject={subject}
         onStartExam={startExam} 
         onSelectCourse={setCurrentCourse} 
         currentCourse={currentCourse} 
@@ -237,7 +177,7 @@ const DashboardPage = () => {
       <div className="max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
           <BookOpen className="w-6 h-6 text-blue-600" />
-          {currentCourse} Topics
+          {currentCourse.title} Topics
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -295,12 +235,15 @@ const QuizPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const topic = location.state?.topic as Topic;
+  const initialTime = location.state?.initialTime as number | undefined;
 
-  if (!topic) return <Navigate to="/" />;
+  if (!topic) return <Navigate to="/dashboard" />;
 
   return (
     <QuizInterface 
+      key={topic.id}
       topic={topic} 
+      initialTime={initialTime}
       onComplete={(answers, score) => navigate('/results', { state: { topic, answers, score } })} 
     />
   );
@@ -309,17 +252,18 @@ const QuizPage = () => {
 const ResultsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { topic, answers, score, reviewOnly } = location.state || {};
+  const { topic, answers, score, reviewOnly, totalQuestions } = location.state || {};
 
-  if (!topic || !answers) return <Navigate to="/" />;
+  if (!topic || !answers) return <Navigate to="/dashboard" />;
 
   return (
     <Results 
       topic={topic}
       answers={answers}
       score={score}
+      totalQuestions={totalQuestions}
       onRetry={() => navigate('/quiz', { state: { topic } })}
-      onHome={() => navigate('/')}
+      onHome={() => navigate('/dashboard')}
       reviewOnly={reviewOnly}
     />
   );
@@ -327,7 +271,8 @@ const ResultsPage = () => {
 
 const HistoryPage = () => {
   const navigate = useNavigate();
-  const allTopics = [...chm111Topics, ...chm117Topics];
+  // Collect all topics from all subjects
+  const allTopics = subjects.flatMap(s => s.courses.flatMap(c => c.topics));
 
   const handleViewResult = (result: any) => {
     let topic = allTopics.find(t => t.id === result.topic_id);
@@ -354,6 +299,7 @@ const HistoryPage = () => {
           topic, 
           answers: parsedAnswers, 
           score: result.score, 
+          totalQuestions: result.total,
           reviewOnly: true 
         } 
       });
@@ -382,11 +328,13 @@ export default function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute><SubjectSelectionPage /></ProtectedRoute>} />
+            <Route path="/dashboard/:subjectId" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
             <Route path="/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
             <Route path="/results" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
+            <Route path="/admin/migrate" element={<ProtectedRoute><MigrationTool /></ProtectedRoute>} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="*" element={<Navigate to="/" />} />

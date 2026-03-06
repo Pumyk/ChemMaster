@@ -115,14 +115,19 @@ export const QuizHistory: React.FC<QuizHistoryProps> = ({ onViewResult }) => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between md:justify-end gap-8">
-                <div className="text-right">
+              <div className="flex items-center justify-between md:justify-end gap-8 flex-1 md:flex-none">
+                <div className="text-right min-w-[100px]">
                   <p className="text-2xl font-bold text-slate-900 dark:text-white">{percentage}%</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold mb-2">
                     {item.score} / {item.total} Correct
                   </p>
+                  <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full ${percentage >= 80 ? 'bg-emerald-500' : percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`} 
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
                 </div>
-                <div className="h-12 w-1 bg-slate-100 dark:bg-slate-700 rounded-full hidden md:block"></div>
                 <ChevronRight className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-all group-hover:translate-x-1" />
               </div>
             </div>
