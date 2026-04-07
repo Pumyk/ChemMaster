@@ -15,10 +15,10 @@ import { TermsOfService } from './components/TermsOfService';
 import { LandingPage } from './components/LandingPage';
 import { LoginPage } from './components/LoginPage';
 import { AdminPage } from './components/AdminPage';
-import { generateQuestions } from './services/aiService';
+import { generateQuestions } from './services/questionService';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { BookOpen, GraduationCap, Sun, Moon, LogOut, History, Sparkles, X, LayoutDashboard, User, Shield, FileText, ArrowLeft, Menu } from 'lucide-react';
+import { BookOpen, GraduationCap, Sun, Moon, LogOut, History, Zap, X, LayoutDashboard, User, Shield, FileText, ArrowLeft, Menu } from 'lucide-react';
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
@@ -207,9 +207,9 @@ const DashboardPage = () => {
   const subject = subjects.find(s => s.id === subjectId);
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
   
-  const [showAiModal, setShowAiModal] = useState(false);
-  const [aiTargetTopic, setAiTargetTopic] = useState<Topic | null>(null);
-  const [aiDifficulty, setAiDifficulty] = useState<Difficulty>('Hard');
+  const [showCustomQuizModal, setShowCustomQuizModal] = useState(false);
+  const [customQuizTargetTopic, setCustomQuizTargetTopic] = useState<Topic | null>(null);
+  const [customQuizDifficulty, setCustomQuizDifficulty] = useState<Difficulty>('Hard');
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
@@ -248,32 +248,32 @@ const DashboardPage = () => {
     navigate('/quiz', { state: { topic: examTopic, initialTime: timeLimit } });
   };
 
-  const openAiModal = (e: React.MouseEvent, topic: Topic) => {
+  const openCustomQuizModal = (e: React.MouseEvent, topic: Topic) => {
     e.stopPropagation();
-    setAiTargetTopic(topic);
-    setShowAiModal(true);
+    setCustomQuizTargetTopic(topic);
+    setShowCustomQuizModal(true);
   };
 
-  const handleGenerateAIQuestions = async () => {
-    if (!aiTargetTopic) return;
+  const handleGenerateCustomQuestions = async () => {
+    if (!customQuizTargetTopic) return;
     setIsGenerating(true);
     try {
-      const newQuestions = await generateQuestions(aiTargetTopic.title, subject.title, 10, aiDifficulty);
-      const questionsWithDifficulty = newQuestions.map(q => ({ ...q, difficulty: aiDifficulty }));
+      const newQuestions = await generateQuestions(customQuizTargetTopic.title, subject.title, 10, customQuizDifficulty);
+      const questionsWithDifficulty = newQuestions.map(q => ({ ...q, difficulty: customQuizDifficulty }));
       
-      const aiQuizTopic: Topic = {
-        ...aiTargetTopic,
-        title: `${aiTargetTopic.title} (AI Generated - ${aiDifficulty})`,
+      const customQuizTopic: Topic = {
+        ...customQuizTargetTopic,
+        title: `${customQuizTargetTopic.title} (Custom - ${customQuizDifficulty})`,
         questions: questionsWithDifficulty
       };
 
-      navigate('/quiz', { state: { topic: aiQuizTopic } });
+      navigate('/quiz', { state: { topic: customQuizTopic } });
     } catch (error) {
-      console.error("AI Generation failed:", error);
-      alert("Failed to generate AI quiz. Please try again.");
+      console.error("Question generation failed:", error);
+      alert("Failed to generate custom quiz. Please try again.");
     } finally {
       setIsGenerating(false);
-      setShowAiModal(false);
+      setShowCustomQuizModal(false);
     }
   };
 
@@ -312,18 +312,18 @@ const DashboardPage = () => {
 
       {isGenerating && <Loading />}
       
-      {/* AI Modal */}
-      {showAiModal && aiTargetTopic && (
+      {/* Custom Quiz Modal */}
+      {showCustomQuizModal && customQuizTargetTopic && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-m3-surface dark:bg-slate-900 rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 border border-m3-surface-variant dark:border-slate-800">
             <div className="flex justify-between items-center mb-8">
               <h3 className="text-2xl font-display font-bold text-m3-on-surface dark:text-white">Generate Questions</h3>
-              <button onClick={() => setShowAiModal(false)} className="p-2 hover:bg-m3-surface-variant dark:hover:bg-slate-800 rounded-full transition-colors">
+              <button onClick={() => setShowCustomQuizModal(false)} className="p-2 hover:bg-m3-surface-variant dark:hover:bg-slate-800 rounded-full transition-colors">
                 <X className="w-6 h-6 text-m3-on-surface-variant" />
               </button>
             </div>
             <p className="text-m3-on-surface-variant dark:text-slate-400 mb-8 leading-relaxed">
-              Generate a unique 10-question quiz for <span className="font-bold text-m3-primary dark:text-m3-primary-container">{aiTargetTopic.title}</span> using AI.
+              Generate a unique 10-question quiz for <span className="font-bold text-m3-primary dark:text-m3-primary-container">{customQuizTargetTopic.title}</span> using our smart engine.
             </p>
             <div className="space-y-4 mb-10">
               <p className="text-xs font-display font-bold text-m3-on-surface-variant dark:text-slate-500 uppercase tracking-widest">Select Difficulty</p>
@@ -331,9 +331,9 @@ const DashboardPage = () => {
                 {(['Easy', 'Medium', 'Hard'] as Difficulty[]).map((diff) => (
                   <button
                     key={diff}
-                    onClick={() => setAiDifficulty(diff)}
+                    onClick={() => setCustomQuizDifficulty(diff)}
                     className={`py-3 rounded-2xl border-2 font-display font-bold transition-all ${
-                      aiDifficulty === diff 
+                      customQuizDifficulty === diff 
                         ? 'border-m3-primary bg-m3-primary-container text-m3-on-primary-container' 
                         : 'border-m3-surface-variant dark:border-slate-800 hover:border-m3-primary/30 text-m3-on-surface-variant dark:text-slate-400'
                     }`}
@@ -344,10 +344,10 @@ const DashboardPage = () => {
               </div>
             </div>
             <button
-              onClick={handleGenerateAIQuestions}
+              onClick={handleGenerateCustomQuestions}
               className="m3-button-primary w-full py-4 flex items-center justify-center gap-3 shadow-lg shadow-m3-primary/20"
             >
-              <Sparkles className="w-5 h-5" />
+              <Zap className="w-5 h-5" />
               Generate Questions
             </button>
           </div>
@@ -401,11 +401,11 @@ const DashboardPage = () => {
                     Start Quiz
                   </button>
                   <button
-                    onClick={(e) => openAiModal(e, topic)}
+                    onClick={(e) => openCustomQuizModal(e, topic)}
                     className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-sm transition-colors shadow-md shadow-amber-500/20 flex items-center justify-center gap-1"
                   >
-                    <Sparkles className="w-4 h-4" />
-                    AI Quiz
+                    <Zap className="w-4 h-4" />
+                    Smart Quiz
                   </button>
                 </div>
               </div>

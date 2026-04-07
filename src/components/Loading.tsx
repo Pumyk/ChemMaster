@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { GraduationCap, Sparkles } from 'lucide-react';
+import { GraduationCap, Zap } from 'lucide-react';
 
 export const Loading: React.FC = () => {
   return (
@@ -44,7 +44,7 @@ export const Loading: React.FC = () => {
           />
         </div>
         
-        {/* Sparkles animation */}
+        {/* Zap animation */}
         {[...Array(6)].map((_, i) => (
           <motion.div
             key={i}
@@ -64,7 +64,7 @@ export const Loading: React.FC = () => {
             }}
             className="absolute top-0 left-1/2 text-m3-tertiary"
           >
-            <Sparkles size={20} />
+            <Zap size={20} />
           </motion.div>
         ))}
       </motion.div>
@@ -76,7 +76,7 @@ export const Loading: React.FC = () => {
         className="mt-12 text-center"
       >
         <h2 className="text-3xl font-display font-bold text-m3-on-surface dark:text-white mb-3">Preparing Your Success</h2>
-        <p className="text-m3-on-surface-variant dark:text-slate-400 font-display font-medium animate-pulse">Generating high-quality assessment materials...</p>
+        <p className="text-m3-on-surface-variant dark:text-slate-400 font-display font-medium animate-pulse">Loading your study materials...</p>
       </motion.div>
 
       <div className="mt-16 w-72 h-2 bg-m3-surface-variant dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">

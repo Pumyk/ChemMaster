@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, BookOpen, Brain, History, ArrowRight, Sun, Moon } from 'lucide-react';
+import { GraduationCap, BookOpen, Lightbulb, History, ArrowRight, Sun, Moon, Zap } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -60,14 +60,14 @@ export const LandingPage = () => {
 
           <div className="max-w-4xl mx-auto">
             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-m3-primary-container text-m3-on-primary-container text-sm font-display font-semibold mb-10 shadow-sm">
-              <SparklesIcon className="w-4 h-4" />
+              <Zap className="w-4 h-4" />
               <span>Master University Chemistry</span>
             </div>
             <h1 className="text-5xl sm:text-7xl font-display font-bold text-m3-on-surface dark:text-white tracking-tight mb-8 leading-[1.1]">
               Your Ultimate <span className="text-m3-primary dark:text-m3-primary-container">Chemistry Companion</span>
             </h1>
             <p className="text-xl text-m3-on-surface-variant dark:text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed">
-              Ace your CHM111 and CHM117 exams with our comprehensive quiz platform. Practice with thousands of questions, track your progress, and generate AI-powered quizzes.
+              Ace your CHM111 and CHM117 exams with our comprehensive quiz platform. Practice with thousands of questions, track your progress, and generate custom practice quizzes.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <button
@@ -91,9 +91,9 @@ export const LandingPage = () => {
                 description="Access a vast library of questions covering all major topics in CHM111 and CHM117."
               />
               <FeatureCard 
-                icon={<Brain className="w-10 h-10 text-m3-tertiary" />}
-                title="AI-Powered Quizzes"
-                description="Generate unique, custom quizzes tailored to your specific needs using advanced AI."
+                icon={<Lightbulb className="w-10 h-10 text-m3-tertiary" />}
+                title="Smart Practice Quizzes"
+                description="Generate unique, custom quizzes tailored to your specific needs using our advanced question engine."
               />
               <FeatureCard 
                 icon={<History className="w-10 h-10 text-m3-secondary" />}
@@ -125,10 +125,4 @@ const FeatureCard = ({ icon, title, description }: { icon: React.ReactNode, titl
     <h3 className="text-2xl font-display font-bold text-m3-on-surface dark:text-white mb-4">{title}</h3>
     <p className="text-m3-on-surface-variant dark:text-slate-400 leading-relaxed">{description}</p>
   </div>
-);
-
-const SparklesIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
-  </svg>
 );

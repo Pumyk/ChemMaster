@@ -1,16 +1,16 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "../data/questions";
-import { getGemini } from "../lib/gemini";
+import { getEngine } from "../lib/engine";
 
 export async function generateQuestions(topicTitle: string, subject: string, count: number = 5, difficulty: 'Easy' | 'Medium' | 'Hard' = 'Medium'): Promise<Question[]> {
-  const ai = getGemini();
+  const engine = getEngine();
   const difficultyPrompt = {
     'Easy': "Focus on basic definitions, simple concepts, and direct facts.",
     'Medium': "Focus on application of concepts, standard calculations, and understanding relationships.",
     'Hard': "Focus on complex multi-step problems, deep conceptual understanding, advanced calculations, and critical thinking. University-level."
   };
 
-  const response = await ai.models.generateContent({
+  const response = await engine.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: `Generate ${count} multiple-choice questions about "${topicTitle}" for a ${subject} quiz.
     The difficulty level should be: ${difficulty}.
@@ -52,7 +52,7 @@ export async function generateQuestions(topicTitle: string, subject: string, cou
       id: Date.now() + index // Temporary unique ID
     }));
   } catch (error) {
-    console.error("Failed to parse AI generated questions:", error);
+    console.error("Failed to parse generated questions:", error);
     return [];
   }
 }

@@ -13,7 +13,7 @@ export const SubjectSelectionPage: React.FC = () => {
           What would you like to learn today?
         </h1>
         <p className="text-xl text-m3-on-surface-variant dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          Select a subject to access quizzes, mock exams, and AI-powered study tools.
+          Select a subject to access quizzes, mock exams, and comprehensive study tools.
         </p>
       </div>
 
