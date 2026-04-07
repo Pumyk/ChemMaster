@@ -1,10 +1,11 @@
 {
-  "name": "react-example",
+  "name": "prepmaster",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
+    "start": "tsx server.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
@@ -12,7 +13,6 @@
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
-    "@supabase/supabase-js": "^2.98.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "bcryptjs": "^3.0.3",
@@ -20,6 +20,7 @@
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "firebase": "^12.11.0",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.0",
     "jspdf-autotable": "^5.0.7",

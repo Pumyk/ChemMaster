@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
-import { Trophy, Clock, BookOpen, Activity, Play, BarChart3 } from 'lucide-react';
+import { db, OperationType, handleFirestoreError } from '../lib/firebase';
+import { collection, query, where, orderBy, getDocs, Timestamp } from 'firebase/firestore';
+import { Trophy, Clock, BookOpen, Activity, Play, BarChart3, GraduationCap } from 'lucide-react';
 import { Subject, Course } from '../data/subjects';
 
 interface DashboardProps {
@@ -24,74 +25,104 @@ export const Dashboard: React.FC<DashboardProps> = ({ subject, onStartExam, onSe
     if (!user) return;
 
     const fetchStats = async () => {
+      const path = 'quiz_results';
       try {
-        const { data, error } = await supabase
-          .from('quiz_results')
-          .select('score, total, created_at, topic_title')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
+        const q = query(
+          collection(db, path),
+          where('userId', '==', user.id),
+          orderBy('createdAt', 'desc')
+        );
+        
+        const querySnapshot = await getDocs(q);
+        const data = querySnapshot.docs.map(doc => doc.data());
 
         if (data && data.length > 0) {
-          const totalQuizzes = data.length;
-          const totalScore = data.reduce((acc, curr) => acc + (curr.score / curr.total) * 100, 0);
-          const averageScore = Math.round(totalScore / totalQuizzes);
+          // Filter results for the current subject
+          const subjectCourseIds = subject.courses.map(c => c.id);
+          const subjectTopicIds = subject.courses.flatMap(c => c.topics.map(t => t.id));
           
-          // Find last "Exam" score (assuming topic_title contains "Exam")
-          const lastExam = data.find(r => r.topic_title.includes('Exam'));
-          const lastExamScore = lastExam ? Math.round((lastExam.score / lastExam.total) * 100) : null;
-
-          setStats({
-            totalQuizzes,
-            averageScore,
-            lastExamScore,
+          const subjectResults = data.filter(r => {
+            // Check if it's a standard topic
+            if (subjectTopicIds.includes(r.topicId)) return true;
+            
+            // Check if it's an exam for one of the subject's courses
+            // Exam IDs format: exam-{courseId}-{timestamp}
+            const isExam = subjectCourseIds.some(courseId => r.topicId.startsWith(`exam-${courseId}`));
+            return isExam;
           });
+
+          if (subjectResults.length > 0) {
+            const totalQuizzes = subjectResults.length;
+            const totalScore = subjectResults.reduce((acc, curr) => acc + (curr.score / curr.total) * 100, 0);
+            const averageScore = Math.round(totalScore / totalQuizzes);
+            
+            // Find last "Exam" score for this subject
+            const lastExam = subjectResults.find(r => r.topicTitle.includes('Exam'));
+            const lastExamScore = lastExam ? Math.round((lastExam.score / lastExam.total) * 100) : null;
+
+            setStats({
+              totalQuizzes,
+              averageScore,
+              lastExamScore,
+            });
+          } else {
+             // Reset stats if no results for this subject
+             setStats({
+              totalQuizzes: 0,
+              averageScore: 0,
+              lastExamScore: null,
+            });
+          }
         }
       } catch (err) {
-        console.error('Error fetching stats:', err);
+        handleFirestoreError(err, OperationType.LIST, path);
       } finally {
         setLoading(false);
       }
     };
 
     fetchStats();
-  }, [user]);
+  }, [user, subject]); // Add subject to dependency array
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in duration-700 font-sans">
       {/* Welcome Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="flex items-center gap-6">
           {user?.user_metadata?.avatar_url ? (
-            <img 
-              src={user.user_metadata.avatar_url} 
-              alt="Profile" 
-              className="w-16 h-16 rounded-full object-cover border-2 border-white dark:border-slate-700 shadow-md"
-            />
+            <div className="relative">
+              <img 
+                src={user.user_metadata.avatar_url} 
+                alt="Profile" 
+                className="w-20 h-20 rounded-[2rem] object-cover border-4 border-white dark:border-slate-800 shadow-xl"
+              />
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-m3-primary rounded-full flex items-center justify-center border-4 border-m3-surface dark:border-slate-900">
+                <Trophy className="w-4 h-4 text-m3-on-primary" />
+              </div>
+            </div>
           ) : (
-            <div className="w-16 h-16 rounded-full bg-white dark:bg-slate-800 flex items-center justify-center border-2 border-slate-100 dark:border-slate-700 shadow-md overflow-hidden">
-              <img src="/logo.svg" alt="Profile" className="w-full h-full object-cover" />
+            <div className="w-20 h-20 rounded-[2rem] bg-m3-primary-container flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-xl overflow-hidden">
+              <GraduationCap className="w-10 h-10 text-m3-on-primary-container" />
             </div>
           )}
           <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+            <h1 className="text-3xl sm:text-4xl font-display font-bold text-m3-on-surface dark:text-white">
               Welcome back, {user?.user_metadata?.name || 'Student'}!
             </h1>
-            <p className="text-slate-600 dark:text-slate-400 mt-1">
-              Ready to master your {subject.title} courses?
+            <p className="text-m3-on-surface-variant dark:text-slate-400 mt-1 font-display font-medium">
+              Ready to master your <span className="text-m3-primary dark:text-m3-primary-container">{subject.title}</span> courses?
             </p>
           </div>
         </div>
-        <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-x-auto max-w-full">
+        <div className="flex bg-m3-surface-variant/50 dark:bg-slate-900/50 p-1.5 rounded-2xl border border-m3-surface-variant dark:border-slate-800 shadow-sm overflow-x-auto max-w-full">
           {subject.courses.map((course) => (
             <button
               key={course.id}
               onClick={() => onSelectCourse(course)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+              className={`px-6 py-2.5 rounded-xl text-sm font-display font-bold transition-all whitespace-nowrap ${
                 currentCourse.id === course.id
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  ? 'bg-m3-primary text-m3-on-primary shadow-lg shadow-m3-primary/20'
+                  : 'text-m3-on-surface-variant dark:text-slate-400 hover:bg-m3-surface-variant dark:hover:bg-slate-800'
               }`}
             >
               {course.id}
@@ -101,43 +132,43 @@ export const Dashboard: React.FC<DashboardProps> = ({ subject, onStartExam, onSe
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600 dark:text-blue-400">
-              <BookOpen className="w-6 h-6" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="m3-card p-8 group hover:scale-105 transition-transform">
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-m3-primary-container rounded-2xl text-m3-on-primary-container group-hover:rotate-12 transition-transform">
+              <BookOpen className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Quizzes Taken</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <p className="text-sm text-m3-on-surface-variant dark:text-slate-500 font-display font-bold uppercase tracking-wider">Quizzes Taken</p>
+              <h3 className="text-3xl font-display font-bold text-m3-on-surface dark:text-white">
                 {loading ? '...' : stats.totalQuizzes}
               </h3>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-xl text-amber-600 dark:text-amber-400">
-              <Activity className="w-6 h-6" />
+        <div className="m3-card p-8 group hover:scale-105 transition-transform">
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-m3-tertiary-container rounded-2xl text-m3-on-tertiary-container group-hover:rotate-12 transition-transform">
+              <Activity className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Average Score</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <p className="text-sm text-m3-on-surface-variant dark:text-slate-500 font-display font-bold uppercase tracking-wider">Average Score</p>
+              <h3 className="text-3xl font-display font-bold text-m3-on-surface dark:text-white">
                 {loading ? '...' : `${stats.averageScore}%`}
               </h3>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-xl text-purple-600 dark:text-purple-400">
-              <Trophy className="w-6 h-6" />
+        <div className="m3-card p-8 group hover:scale-105 transition-transform">
+          <div className="flex items-center gap-6">
+            <div className="p-4 bg-m3-secondary-container rounded-2xl text-m3-on-secondary-container group-hover:rotate-12 transition-transform">
+              <Trophy className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Last Exam Score</p>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <p className="text-sm text-m3-on-surface-variant dark:text-slate-500 font-display font-bold uppercase tracking-wider">Last Exam Score</p>
+              <h3 className="text-3xl font-display font-bold text-m3-on-surface dark:text-white">
                 {loading ? '...' : (stats.lastExamScore !== null ? `${stats.lastExamScore}%` : 'N/A')}
               </h3>
             </div>
@@ -146,36 +177,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ subject, onStartExam, onSe
       </div>
 
       {/* Exam Mode Banner */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 to-slate-800 dark:from-blue-900 dark:to-slate-900 rounded-3xl p-8 md:p-12 text-white shadow-xl">
-        <div className="absolute top-0 right-0 p-8 opacity-10">
-          <Clock className="w-64 h-64" />
+      <div className="relative overflow-hidden bg-m3-primary dark:bg-indigo-950 rounded-[3rem] p-10 md:p-16 text-white shadow-2xl">
+        <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12">
+          <Clock className="w-80 h-80" />
         </div>
         
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-sm font-medium mb-4">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-sm font-display font-bold mb-6">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse"></span>
             Exam Mode
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready for the real challenge?</h2>
-          <p className="text-slate-300 text-lg mb-8">
+          <h2 className="text-4xl md:text-5xl font-display font-bold mb-6 leading-tight">Ready for the real challenge?</h2>
+          <p className="text-m3-primary-container text-xl mb-10 leading-relaxed font-display">
             Simulate a real exam environment. 
             <br />
             {subject.courses.map(course => (
               <React.Fragment key={course.id}>
-                <strong>{course.id}:</strong> {course.topics.length > 5 ? '35' : '15'} questions in {course.topics.length > 5 ? '30' : '10'} minutes.
+                <span className="font-bold">{course.id}:</span> {course.questionCount} questions in {course.timeLimit} minutes.
                 <br />
               </React.Fragment>
             ))}
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-6 flex-wrap">
             {subject.courses.map((course) => (
               <button
                 key={course.id}
                 onClick={() => onStartExam(course)}
-                className="px-6 py-4 bg-white text-slate-900 hover:bg-slate-100 rounded-xl font-bold text-lg transition-all shadow-lg shadow-white/10 flex items-center justify-center gap-2 transform hover:scale-105 active:scale-95"
+                className="px-8 py-5 bg-white text-m3-primary hover:bg-m3-primary-container rounded-2xl font-display font-bold text-xl transition-all shadow-xl shadow-black/10 flex items-center justify-center gap-3 transform hover:scale-105 active:scale-95 group"
               >
-                <Play className="w-5 h-5" />
+                <Play className="w-6 h-6 fill-current group-hover:scale-110 transition-transform" />
                 Start {course.id} Exam
               </button>
             ))}
@@ -184,8 +215,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ subject, onStartExam, onSe
       </div>
 
       {/* Recent Activity or Quick Links could go here */}
-      <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
-        <BarChart3 className="w-4 h-4" />
+      <div className="flex items-center gap-3 text-m3-on-surface-variant dark:text-slate-500 text-sm font-display font-bold uppercase tracking-widest bg-m3-surface-variant/30 dark:bg-slate-900/30 p-4 rounded-2xl w-fit">
+        <BarChart3 className="w-5 h-5" />
         <span>Select a course above to view specific topics below.</span>
       </div>
     </div>

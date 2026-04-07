@@ -14,8 +14,8 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
         manifest: {
-          name: 'ChemMaster Pro',
-          short_name: 'ChemMaster',
+          name: 'PrepMaster',
+          short_name: 'PrepMaster',
           description: 'Master University Chemistry with interactive quizzes.',
           theme_color: '#2563eb',
           icons: [

@@ -56,3 +56,15 @@ create policy "Authenticated users can insert subjects" on subjects for insert t
 create policy "Authenticated users can insert courses" on courses for insert to authenticated with check (true);
 create policy "Authenticated users can insert topics" on topics for insert to authenticated with check (true);
 create policy "Authenticated users can insert questions" on questions for insert to authenticated with check (true);
+
+-- Create Policies (Update Access - for migration/upsert)
+create policy "Authenticated users can update subjects" on subjects for update to authenticated using (true);
+create policy "Authenticated users can update courses" on courses for update to authenticated using (true);
+create policy "Authenticated users can update topics" on topics for update to authenticated using (true);
+create policy "Authenticated users can update questions" on questions for update to authenticated using (true);
+
+-- Create Policies (Delete Access - for cleanup if needed)
+create policy "Authenticated users can delete subjects" on subjects for delete to authenticated using (true);
+create policy "Authenticated users can delete courses" on courses for delete to authenticated using (true);
+create policy "Authenticated users can delete topics" on topics for delete to authenticated using (true);
+create policy "Authenticated users can delete questions" on questions for delete to authenticated using (true);

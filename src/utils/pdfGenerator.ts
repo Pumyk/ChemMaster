@@ -47,7 +47,7 @@ export const generatePDF = async (topic: Topic, userAnswers: Record<number, numb
   
   doc.setFontSize(14);
   doc.setFont('helvetica', 'normal');
-  doc.text(topic.title.toUpperCase(), margin, 35);
+  doc.text((topic.title || 'Assessment Report').toUpperCase(), margin, 35);
   
   doc.setFontSize(10);
   doc.text(`Generated on ${new Date().toLocaleDateString('en-US', { dateStyle: 'long' })}`, margin, 45);
@@ -168,9 +168,9 @@ export const generatePDF = async (topic: Topic, userAnswers: Record<number, numb
     
     doc.setFontSize(8);
     setText(colors.subtext);
-    doc.text(`ChemMaster Pro Assessment Report`, margin, pageHeight - 10);
+    doc.text(`PrepMaster Assessment Report`, margin, pageHeight - 10);
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
   }
 
-  doc.save(`ChemMaster_Report_${topic.id}_${new Date().getTime()}.pdf`);
+  doc.save(`PrepMaster_Report_${topic.id}_${new Date().getTime()}.pdf`);
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Question, Topic } from '../data/questions';
 import { Timer } from './Timer';
 import { QuestionNavigation } from './QuestionNavigation';
@@ -38,7 +38,7 @@ export const QuizInterface: React.FC<QuizInterfaceProps> = ({ topic, onComplete,
     }
   }, [countdown, isStarting]);
 
-  const submitQuiz = () => {
+  const submitQuiz = useCallback(() => {
     let score = 0;
     shuffledQuestions.forEach(q => {
       if (answers[q.id] === q.correctAnswer) {
@@ -46,17 +46,26 @@ export const QuizInterface: React.FC<QuizInterfaceProps> = ({ topic, onComplete,
       }
     });
     onComplete(answers, score);
-  };
+  }, [shuffledQuestions, answers, onComplete]);
 
   const handleFinishClick = () => {
     setShowFinishConfirmation(true);
   };
 
+  // Effect to handle automatic submission on too many warnings
+  const hasSubmittedRef = useRef(false);
+  useEffect(() => {
+    if (warningCount > 2 && !hasSubmittedRef.current) {
+      hasSubmittedRef.current = true;
+      submitQuiz();
+    }
+  }, [warningCount, submitQuiz]);
+
   // Ref to access the latest submitQuiz in event listeners
   const submitQuizRef = useRef(submitQuiz);
   useEffect(() => {
     submitQuizRef.current = submitQuiz;
-  });
+  }, [submitQuiz]);
 
   useEffect(() => {
     if (isStarting) return;
@@ -64,11 +73,9 @@ export const QuizInterface: React.FC<QuizInterfaceProps> = ({ topic, onComplete,
     const handleViolation = () => {
       setWarningCount(prev => {
         const newCount = prev + 1;
-        if (newCount > 2) {
-          submitQuizRef.current();
-          return newCount;
+        if (newCount <= 2) {
+          setShowWarningModal(true);
         }
-        setShowWarningModal(true);
         return newCount;
       });
     };
@@ -96,17 +103,23 @@ export const QuizInterface: React.FC<QuizInterfaceProps> = ({ topic, onComplete,
 
   if (isStarting) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900 text-white animate-in fade-in duration-300">
-        <div className="text-center space-y-8">
-          <h2 className="text-4xl font-bold mb-4">Get Ready!</h2>
-          <div className="text-9xl font-black tabular-nums animate-pulse text-blue-500">
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-m3-surface dark:bg-slate-950 text-m3-on-surface dark:text-white animate-in fade-in duration-500 font-sans">
+        {/* Decorative background elements */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 opacity-20 dark:opacity-10">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-m3-primary rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-m3-tertiary rounded-full blur-3xl animate-pulse delay-700"></div>
+        </div>
+
+        <div className="text-center space-y-12">
+          <h2 className="text-5xl font-display font-bold mb-4 tracking-tight">Get Ready!</h2>
+          <div className="text-[12rem] font-display font-black tabular-nums text-m3-primary dark:text-m3-primary-container drop-shadow-2xl animate-bounce">
             {countdown}
           </div>
-          <p className="text-xl text-slate-400">Your exam will begin shortly...</p>
+          <p className="text-2xl text-m3-on-surface-variant dark:text-slate-400 font-display font-medium">Your exam will begin shortly...</p>
           
           <button
             onClick={() => setIsStarting(false)}
-            className="px-8 py-4 bg-white text-slate-900 hover:bg-slate-100 rounded-xl font-bold text-lg transition-all shadow-lg shadow-white/10 transform hover:scale-105 active:scale-95"
+            className="m3-button-primary px-12 py-5 text-2xl shadow-2xl shadow-m3-primary/30"
           >
             Start Now
           </button>
@@ -125,34 +138,34 @@ export const QuizInterface: React.FC<QuizInterfaceProps> = ({ topic, onComplete,
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto p-4 md:p-6 relative">
+    <div className="w-full max-w-5xl mx-auto p-4 md:p-8 relative font-sans">
       {/* Finish Confirmation Modal */}
       {showFinishConfirmation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in duration-200">
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-500">
-                <CheckCircle className="w-8 h-8" />
+          <div className="bg-m3-surface dark:bg-slate-900 rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl border border-m3-surface-variant dark:border-slate-800 animate-in fade-in zoom-in duration-200">
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 rounded-[2rem] bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-500">
+                <CheckCircle className="w-10 h-10" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Finish Quiz?</h3>
-                <p className="text-slate-600 dark:text-slate-300">
+                <h3 className="text-2xl font-display font-bold text-m3-on-surface dark:text-white mb-3">Finish Quiz?</h3>
+                <p className="text-m3-on-surface-variant dark:text-slate-400 leading-relaxed">
                   Are you sure you want to submit your answers? You cannot undo this action.
                 </p>
-                <div className="mt-2 text-sm text-slate-500">
+                <div className="mt-4 text-sm font-display font-bold text-m3-primary dark:text-m3-primary-container bg-m3-primary-container/30 dark:bg-slate-800/50 px-4 py-2 rounded-full">
                   {Object.keys(answers).length} of {shuffledQuestions.length} questions answered.
                 </div>
               </div>
-              <div className="flex gap-3 w-full mt-2">
+              <div className="flex flex-col sm:flex-row gap-4 w-full mt-4">
                 <button
                   onClick={() => setShowFinishConfirmation(false)}
-                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-xl font-bold transition-colors"
+                  className="m3-button-tonal flex-1 py-4"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={submitQuiz}
-                  className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors"
+                  className="m3-button-primary flex-1 py-4 bg-emerald-600 text-white hover:bg-emerald-700"
                 >
                   Submit
                 </button>
@@ -165,26 +178,26 @@ export const QuizInterface: React.FC<QuizInterfaceProps> = ({ topic, onComplete,
       {/* Warning Modal */}
       {showWarningModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl border border-red-200 dark:border-red-900 animate-in fade-in zoom-in duration-200">
-            <div className="flex flex-col items-center text-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-500">
-                <AlertTriangle className="w-8 h-8" />
+          <div className="bg-m3-surface dark:bg-slate-900 rounded-[2.5rem] p-10 max-w-md w-full shadow-2xl border border-red-200 dark:border-red-900 animate-in fade-in zoom-in duration-200">
+            <div className="flex flex-col items-center text-center gap-6">
+              <div className="w-20 h-20 rounded-[2rem] bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-500">
+                <AlertTriangle className="w-10 h-10" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Warning!</h3>
-                <p className="text-slate-600 dark:text-slate-300">
+                <h3 className="text-2xl font-display font-bold text-m3-on-surface dark:text-white mb-3">Warning!</h3>
+                <p className="text-m3-on-surface-variant dark:text-slate-400 leading-relaxed">
                   You are attempting to leave the exam interface. This is a violation of the exam rules.
                 </p>
-                <p className="text-red-600 dark:text-red-400 font-bold mt-2">
+                <p className="text-red-600 dark:text-red-400 font-display font-black text-xl mt-4">
                   Warning {warningCount} of 2
                 </p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-m3-on-surface-variant dark:text-slate-500 mt-2 font-display font-bold uppercase tracking-widest">
                   Next violation will result in automatic submission.
                 </p>
               </div>
               <button
                 onClick={() => setShowWarningModal(false)}
-                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors cursor-pointer"
+                className="m3-button-primary w-full py-4 bg-red-600 text-white hover:bg-red-700"
               >
                 I Understand
               </button>
@@ -194,100 +207,100 @@ export const QuizInterface: React.FC<QuizInterfaceProps> = ({ topic, onComplete,
       )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8">
+      <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-10">
         <div className="w-full md:w-auto">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{topic.title}</h2>
+          <div className="flex justify-between items-center gap-4">
+            <h2 className="text-3xl font-display font-bold text-m3-on-surface dark:text-white mb-1">{topic.title}</h2>
             <button
               onClick={handleFinishClick}
-              className="md:hidden px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-bold transition-colors shadow-md shadow-emerald-900/20 flex items-center gap-2"
+              className="md:hidden px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full text-sm font-display font-bold transition-all shadow-lg shadow-emerald-900/20 flex items-center gap-2"
             >
               <CheckCircle className="w-4 h-4" />
               Finish
             </button>
           </div>
-          <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400 mb-2">
+          <div className="flex items-center justify-between text-sm text-m3-on-surface-variant dark:text-slate-400 mb-3 font-display font-bold uppercase tracking-widest">
             <span>Question {currentQuestionIndex + 1} of {shuffledQuestions.length}</span>
-            <span className="md:hidden font-mono">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
+            <span className="md:hidden font-mono bg-m3-surface-variant/50 dark:bg-slate-800/50 px-3 py-1 rounded-lg">{Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}</span>
           </div>
-          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+          <div className="w-full bg-m3-surface-variant dark:bg-slate-800 rounded-full h-3 overflow-hidden shadow-inner">
             <div 
-              className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out" 
+              className="bg-m3-primary h-full rounded-full transition-all duration-500 ease-out shadow-lg" 
               style={{ width: `${(Object.keys(answers).length / shuffledQuestions.length) * 100}%` }}
             ></div>
           </div>
         </div>
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-6">
           <Timer timeLeft={timeLeft} setTimeLeft={setTimeLeft} onTimeUp={submitQuiz} />
           <button
             onClick={handleFinishClick}
-            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-emerald-900/20 flex items-center gap-2"
+            className="m3-button-primary py-4 bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-3 shadow-emerald-900/20"
           >
-            <CheckCircle className="w-5 h-5" />
+            <CheckCircle className="w-6 h-6" />
             Finish Quiz
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Main Question Area */}
-        <div className="lg:col-span-8 space-y-6">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 border border-slate-200 dark:border-slate-700 shadow-xl min-h-[400px] flex flex-col transition-colors">
-            <h3 className="text-xl md:text-2xl font-medium text-slate-900 dark:text-white mb-8 leading-relaxed">
+        <div className="lg:col-span-8 space-y-8">
+          <div className="m3-card p-10 min-h-[450px] flex flex-col transition-colors shadow-xl">
+            <h3 className="text-2xl md:text-3xl font-display font-bold text-m3-on-surface dark:text-white mb-10 leading-tight">
               {currentQuestion.text}
             </h3>
 
-            <div className="space-y-3 flex-1">
+            <div className="space-y-4 flex-1">
               {currentQuestion.options.map((option, index) => {
                 const isSelected = answers[currentQuestion.id] === index;
                 return (
                   <button
                     key={index}
                     onClick={() => handleAnswer(index)}
-                    className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-4 group ${
+                    className={`w-full text-left p-6 rounded-2xl border-2 transition-all duration-300 flex items-center gap-6 group ${
                       isSelected 
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-white' 
-                        : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        ? 'border-m3-primary bg-m3-primary-container text-m3-on-primary-container shadow-md' 
+                        : 'border-m3-surface-variant dark:border-slate-800 bg-m3-surface dark:bg-slate-950 text-m3-on-surface dark:text-slate-300 hover:border-m3-primary/30 hover:bg-m3-surface-variant/30 dark:hover:bg-slate-800/30'
                     }`}
                   >
-                    <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-colors ${
+                    <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-lg font-display font-black transition-colors ${
                       isSelected 
-                        ? 'border-blue-500 bg-blue-500 text-white' 
-                        : 'border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-500 group-hover:border-slate-400 dark:group-hover:border-slate-500'
+                        ? 'border-m3-primary bg-m3-primary text-white' 
+                        : 'border-m3-surface-variant dark:border-slate-700 text-m3-on-surface-variant dark:text-slate-500 group-hover:border-m3-primary/50'
                     }`}>
                       {String.fromCharCode(65 + index)}
                     </div>
-                    <span className="text-lg">{option}</span>
+                    <span className="text-xl font-display font-medium">{option}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="flex justify-between mt-8 pt-6 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex justify-between mt-10 pt-8 border-t border-m3-surface-variant dark:border-slate-800">
               <button
                 onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                 disabled={currentQuestionIndex === 0}
-                className="px-6 py-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                className="px-8 py-3 text-m3-on-surface-variant dark:text-slate-400 hover:text-m3-primary dark:hover:text-m3-primary-container disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-3 transition-all font-display font-bold"
               >
-                <ArrowLeft className="w-5 h-5" />
+                <ArrowLeft className="w-6 h-6" />
                 Previous
               </button>
               
               {currentQuestionIndex === shuffledQuestions.length - 1 ? (
                 <button
                   onClick={handleFinishClick}
-                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg flex items-center gap-2 transition-colors shadow-lg shadow-emerald-900/20"
+                  className="px-10 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full font-display font-bold text-lg flex items-center gap-3 transition-all shadow-xl shadow-emerald-900/20 transform hover:scale-105 active:scale-95"
                 >
                   Finish
-                  <CheckCircle className="w-5 h-5" />
+                  <CheckCircle className="w-6 h-6" />
                 </button>
               ) : (
                 <button
                   onClick={() => setCurrentQuestionIndex(prev => Math.min(shuffledQuestions.length - 1, prev + 1))}
-                  className="px-6 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+                  className="px-10 py-3 bg-m3-primary-container text-m3-on-primary-container hover:bg-m3-primary hover:text-m3-on-primary rounded-full font-display font-bold text-lg disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-3 transition-all shadow-md transform hover:scale-105 active:scale-95"
                 >
                   Next
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-6 h-6" />
                 </button>
               )}
             </div>
@@ -295,10 +308,10 @@ export const QuizInterface: React.FC<QuizInterfaceProps> = ({ topic, onComplete,
         </div>
 
         {/* Sidebar Navigation */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-xl transition-colors">
-            <h4 className="text-slate-900 dark:text-white font-bold mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+        <div className="lg:col-span-4 space-y-8">
+          <div className="m3-card p-8 transition-colors shadow-lg">
+            <h4 className="text-m3-on-surface dark:text-white font-display font-bold text-xl mb-6 flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full bg-m3-primary animate-pulse"></div>
               Question Map
             </h4>
             <QuestionNavigation
@@ -309,17 +322,17 @@ export const QuizInterface: React.FC<QuizInterfaceProps> = ({ topic, onComplete,
               questions={shuffledQuestions}
             />
             
-            <div className="mt-6 space-y-2 text-sm text-slate-600 dark:text-slate-400">
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded bg-blue-600 ring-2 ring-blue-400"></div>
-                <span>Current Question</span>
+            <div className="mt-8 space-y-3 text-sm font-display font-bold text-m3-on-surface-variant dark:text-slate-500 uppercase tracking-widest">
+              <div className="flex items-center gap-4">
+                <div className="w-5 h-5 rounded-lg bg-m3-primary ring-4 ring-m3-primary-container"></div>
+                <span>Current</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded bg-emerald-600"></div>
+              <div className="flex items-center gap-4">
+                <div className="w-5 h-5 rounded-lg bg-emerald-600"></div>
                 <span>Answered</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-4 h-4 rounded bg-slate-200 dark:bg-slate-700"></div>
+              <div className="flex items-center gap-4">
+                <div className="w-5 h-5 rounded-lg bg-m3-surface-variant dark:bg-slate-800"></div>
                 <span>Unattempted</span>
               </div>
             </div>

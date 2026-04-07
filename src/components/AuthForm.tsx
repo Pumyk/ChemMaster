@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { auth, googleProvider } from '../lib/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithPopup } from 'firebase/auth';
 import { LogIn, UserPlus, Loader2, Eye, EyeOff, X } from 'lucide-react';
 
 export const AuthForm: React.FC = () => {
@@ -11,7 +12,6 @@ export const AuthForm: React.FC = () => {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   
   // Forgot Password State
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -29,39 +29,11 @@ export const AuthForm: React.FC = () => {
 
     try {
       if (isLogin) {
-        // Set persistence based on "Remember Me"
-        // 'local' persists the session (default), 'session' clears it when the browser closes
-        try {
-           // @ts-ignore - setPersistence is available in newer supabase-js versions
-           await supabase.auth.setPersistence(rememberMe ? 'local' : 'session');
-        } catch (e) {
-           console.warn("Persistence setting failed or not supported", e);
-        }
-
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) throw error;
-        // AuthContext will handle the state update via onAuthStateChange
+        await signInWithEmailAndPassword(auth, email, password);
       } else {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              name: name,
-            },
-          },
-        });
-
-        if (error) throw error;
-        if (data.user && !data.session) {
-          setError('Please check your email for the confirmation link.');
-          setLoading(false);
-          return;
-        }
+        await createUserWithEmailAndPassword(auth, email, password);
+        // Note: Firebase doesn't automatically set displayName on signup with email/pass
+        // We'd need updateProfile, but AuthContext handles initial profile creation in Firestore
       }
     } catch (err: any) {
       setError(err.message);
@@ -77,11 +49,7 @@ export const AuthForm: React.FC = () => {
     setResetError('');
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/`,
-      });
-
-      if (error) throw error;
+      await sendPasswordResetEmail(auth, resetEmail);
       setResetMessage('Check your email for the password reset link.');
     } catch (err: any) {
       setResetError(err.message);
@@ -90,81 +58,78 @@ export const AuthForm: React.FC = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      await login(); // AuthContext.login uses signInWithPopup
+    } catch (err: any) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   return (
     <>
-      <div className="w-full max-w-md mx-auto p-8 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-700 transition-colors">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 text-center">
+      <div className="w-full max-w-md mx-auto p-10 bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl border border-m3-surface-variant dark:border-slate-800 transition-colors">
+        <h2 className="text-3xl font-display font-bold text-m3-on-surface dark:text-white mb-8 text-center">
           {isLogin ? 'Welcome Back' : 'Create Account'}
         </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Name</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-display font-bold text-m3-on-surface-variant dark:text-slate-400 ml-1">Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
+                className="w-full p-4 rounded-2xl border-2 border-m3-surface-variant dark:border-slate-800 bg-m3-surface dark:bg-slate-950 text-m3-on-surface dark:text-white focus:border-m3-primary outline-none transition-all font-display"
                 required
               />
             </div>
           )}
           
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
+          <div className="space-y-2">
+            <label className="block text-sm font-display font-bold text-m3-on-surface-variant dark:text-slate-400 ml-1">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
+              className="w-full p-4 rounded-2xl border-2 border-m3-surface-variant dark:border-slate-800 bg-m3-surface dark:bg-slate-950 text-m3-on-surface dark:text-white focus:border-m3-primary outline-none transition-all font-display"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
+          <div className="space-y-2">
+            <label className="block text-sm font-display font-bold text-m3-on-surface-variant dark:text-slate-400 ml-1">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full p-3 pr-10 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
+                className="w-full p-4 pr-12 rounded-2xl border-2 border-m3-surface-variant dark:border-slate-800 bg-m3-surface dark:bg-slate-950 text-m3-on-surface dark:text-white focus:border-m3-primary outline-none transition-all font-display"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 focus:outline-none"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-m3-on-surface-variant dark:text-slate-500 hover:text-m3-primary dark:hover:text-m3-primary-container focus:outline-none transition-colors"
               >
                 {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
+                  <EyeOff className="w-6 h-6" />
                 ) : (
-                  <Eye className="w-5 h-5" />
+                  <Eye className="w-6 h-6" />
                 )}
               </button>
             </div>
           </div>
 
           {isLogin && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-slate-700 dark:text-slate-300">
-                  Remember me
-                </label>
-              </div>
+            <div className="flex items-center justify-end">
               <button
                 type="button"
                 onClick={() => setShowForgotPassword(true)}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-sm font-display font-bold text-m3-primary dark:text-m3-primary-container hover:underline"
               >
                 Forgot Password?
               </button>
@@ -172,7 +137,7 @@ export const AuthForm: React.FC = () => {
           )}
 
           {error && (
-            <p className="text-red-500 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
+            <p className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 p-4 rounded-2xl border border-red-100 dark:border-red-900/30 font-display">
               {error}
             </p>
           )}
@@ -180,60 +145,37 @@ export const AuthForm: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="m3-button-primary w-full py-4 flex items-center justify-center gap-3 shadow-lg shadow-m3-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-6 h-6 animate-spin" />
             ) : isLogin ? (
               <>
-                <LogIn className="w-5 h-5" />
+                <LogIn className="w-6 h-6" />
                 Log In
               </>
             ) : (
               <>
-                <UserPlus className="w-5 h-5" />
+                <UserPlus className="w-6 h-6" />
                 Sign Up
               </>
             )}
           </button>
         </form>
 
-        <div className="mt-6 flex items-center gap-4">
-          <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
-          <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">Or continue with</span>
-          <div className="h-px bg-slate-200 dark:bg-slate-700 flex-1"></div>
+        <div className="mt-8 flex items-center gap-4">
+          <div className="h-px bg-m3-surface-variant dark:bg-slate-800 flex-1"></div>
+          <span className="text-xs text-m3-on-surface-variant dark:text-slate-500 font-display font-bold uppercase tracking-widest">Or continue with</span>
+          <div className="h-px bg-m3-surface-variant dark:bg-slate-800 flex-1"></div>
         </div>
 
         <button
           type="button"
-          onClick={async () => {
-            setLoading(true);
-            try {
-              // Get the current origin without a trailing slash
-              const redirectUrl = window.location.origin;
-              console.log('Current Origin:', window.location.origin);
-              console.log('Using Redirect URL:', redirectUrl);
-              
-              const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                  redirectTo: redirectUrl,
-                  queryParams: {
-                    access_type: 'offline',
-                    prompt: 'consent',
-                  },
-                },
-              });
-              if (error) throw error;
-            } catch (err: any) {
-              setError(err.message);
-              setLoading(false);
-            }
-          }}
+          onClick={handleGoogleSignIn}
           disabled={loading}
-          className="mt-4 w-full py-3 bg-white dark:bg-slate-700 hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-6 w-full py-4 bg-m3-surface dark:bg-slate-950 hover:bg-m3-surface-variant dark:hover:bg-slate-800 text-m3-on-surface dark:text-white border-2 border-m3-surface-variant dark:border-slate-800 rounded-2xl font-display font-bold transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <svg className="w-6 h-6" viewBox="0 0 24 24">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
               fill="#4285F4"
@@ -254,10 +196,10 @@ export const AuthForm: React.FC = () => {
           Sign in with Google
         </button>
 
-        <div className="mt-6 text-center">
+        <div className="mt-8 text-center">
           <button
             onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            className="text-sm font-display font-bold text-m3-on-surface-variant dark:text-slate-500 hover:text-m3-primary dark:hover:text-m3-primary-container transition-colors"
           >
             {isLogin ? "Don't have an account? Sign up" : "Already have an account? Log in"}
           </button>
@@ -267,39 +209,39 @@ export const AuthForm: React.FC = () => {
       {/* Forgot Password Modal */}
       {showForgotPassword && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700 relative">
+          <div className="bg-m3-surface dark:bg-slate-900 rounded-[2.5rem] shadow-2xl max-w-md w-full p-10 border border-m3-surface-variant dark:border-slate-800 relative">
             <button
               onClick={() => setShowForgotPassword(false)}
-              className="absolute top-4 right-4 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+              className="absolute top-6 right-6 p-2 hover:bg-m3-surface-variant dark:hover:bg-slate-800 rounded-full transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6 text-m3-on-surface-variant" />
             </button>
             
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Reset Password</h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm">
+            <h3 className="text-2xl font-display font-bold text-m3-on-surface dark:text-white mb-4">Reset Password</h3>
+            <p className="text-m3-on-surface-variant dark:text-slate-400 mb-8 leading-relaxed">
               Enter your email address and we'll send you a link to reset your password.
             </p>
 
-            <form onSubmit={handleResetPassword} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
+            <form onSubmit={handleResetPassword} className="space-y-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-display font-bold text-m3-on-surface-variant dark:text-slate-400 ml-1">Email</label>
                 <input
                   type="email"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
-                  className="w-full p-3 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
+                  className="w-full p-4 rounded-2xl border-2 border-m3-surface-variant dark:border-slate-800 bg-m3-surface dark:bg-slate-950 text-m3-on-surface dark:text-white focus:border-m3-primary outline-none transition-all font-display"
                   required
                 />
               </div>
 
               {resetMessage && (
-                <p className="text-green-600 text-sm bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-emerald-600 dark:text-emerald-400 text-sm bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 font-display">
                   {resetMessage}
                 </p>
               )}
 
               {resetError && (
-                <p className="text-red-500 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800">
+                <p className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 p-4 rounded-2xl border border-red-100 dark:border-red-900/30 font-display">
                   {resetError}
                 </p>
               )}
@@ -307,10 +249,10 @@ export const AuthForm: React.FC = () => {
               <button
                 type="submit"
                 disabled={resetLoading}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="m3-button-primary w-full py-4 flex items-center justify-center gap-3 shadow-lg shadow-m3-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {resetLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-6 h-6 animate-spin" />
                 ) : (
                   'Send Reset Link'
                 )}

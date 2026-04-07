@@ -14,25 +14,189 @@ import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
 import { LandingPage } from './components/LandingPage';
 import { LoginPage } from './components/LoginPage';
+import { AdminPage } from './components/AdminPage';
+import { generateQuestions } from './services/aiService';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { BookOpen, FlaskConical, Sun, Moon, LogOut, History, Sparkles, X, LayoutDashboard, User, Shield, FileText, ArrowLeft } from 'lucide-react';
-import { generateQuestions } from './services/aiService';
+import { BookOpen, GraduationCap, Sun, Moon, LogOut, History, Sparkles, X, LayoutDashboard, User, Shield, FileText, ArrowLeft, Menu } from 'lucide-react';
 
 type Difficulty = 'Easy' | 'Medium' | 'Hard';
 
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { Navbar } from './components/Navbar';
-import { Footer } from './components/Footer';
-import { MigrationTool } from './components/MigrationTool';
-
 // --- Components for Pages ---
 
+const Footer = () => (
+  <footer className="py-12 text-center text-sm text-m3-on-surface-variant dark:text-slate-500 border-t border-m3-surface-variant dark:border-slate-800 mt-auto bg-m3-surface dark:bg-slate-950">
+    <div className="flex justify-center gap-8 mb-6 font-display font-medium">
+      <Link to="/privacy" className="hover:text-m3-primary dark:hover:text-m3-primary-container transition-colors flex items-center gap-2">
+        <Shield className="w-4 h-4" /> Privacy Policy
+      </Link>
+      <Link to="/terms" className="hover:text-m3-primary dark:hover:text-m3-primary-container transition-colors flex items-center gap-2">
+        <FileText className="w-4 h-4" /> Terms of Service
+      </Link>
+    </div>
+    <p className="font-display">&copy; {new Date().getFullYear()} PrepMaster. All rights reserved.</p>
+  </footer>
+);
 
+const Navbar = () => {
+  const { user, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  const closeMenu = () => setIsMobileMenuOpen(false);
 
+  return (
+    <nav className="bg-m3-surface/80 dark:bg-slate-950/50 backdrop-blur-md sticky top-0 z-40 transition-colors border-b border-m3-surface-variant dark:border-slate-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/')}>
+          <div className="w-10 h-10 bg-m3-primary rounded-2xl flex items-center justify-center shadow-lg shadow-m3-primary/20 group-hover:scale-110 transition-transform shrink-0">
+            <GraduationCap className="w-6 h-6 text-m3-on-primary" />
+          </div>
+          <span className="text-2xl font-display font-bold text-m3-primary dark:text-m3-primary-container truncate">
+            PrepMaster
+          </span>
+        </div>
+        
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-3">
+          <NavLink 
+            to="/dashboard"
+            className={({ isActive }) => `px-5 py-2.5 rounded-full text-sm font-display font-semibold transition-all flex items-center gap-2 ${isActive ? 'bg-m3-primary-container text-m3-on-primary-container shadow-sm' : 'text-m3-on-surface-variant dark:text-slate-400 hover:bg-m3-surface-variant dark:hover:bg-slate-800'}`}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            <span>Dashboard</span>
+          </NavLink>
+          <NavLink 
+            to="/history"
+            className={({ isActive }) => `px-5 py-2.5 rounded-full text-sm font-display font-semibold transition-all flex items-center gap-2 ${isActive ? 'bg-m3-primary-container text-m3-on-primary-container shadow-sm' : 'text-m3-on-surface-variant dark:text-slate-400 hover:bg-m3-surface-variant dark:hover:bg-slate-800'}`}
+          >
+            <History className="w-4 h-4" />
+            <span>History</span>
+          </NavLink>
+          <NavLink 
+            to="/profile"
+            className={({ isActive }) => `px-5 py-2.5 rounded-full text-sm font-display font-semibold transition-all flex items-center gap-2 ${isActive ? 'bg-m3-primary-container text-m3-on-primary-container shadow-sm' : 'text-m3-on-surface-variant dark:text-slate-400 hover:bg-m3-surface-variant dark:hover:bg-slate-800'}`}
+          >
+            <img 
+              src={user?.user_metadata?.avatar_url || "https://img.icons8.com/?size=100&id=2yC9SZKcXDdX&format=png&color=000000"} 
+              alt="Profile" 
+              className="w-6 h-6 rounded-full object-cover border border-m3-surface-variant dark:border-slate-700"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "https://img.icons8.com/?size=100&id=2yC9SZKcXDdX&format=png&color=000000";
+              }}
+            />
+            <span>Profile</span>
+          </NavLink>
+          
+          <div className="h-8 w-px bg-m3-surface-variant dark:bg-slate-800 mx-2"></div>
 
+          <button
+            onClick={toggleTheme}
+            className="p-3 rounded-full hover:bg-m3-surface-variant dark:hover:bg-slate-800 text-m3-on-surface-variant dark:text-slate-300 transition-colors"
+            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
 
+          <button 
+            onClick={logout}
+            className="p-3 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 text-m3-on-surface-variant dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Mobile Menu Button */}
+        <div className="md:hidden flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+          >
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Navigation Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-4 space-y-2 shadow-lg absolute w-full left-0">
+          <NavLink 
+            to="/dashboard"
+            onClick={closeMenu}
+            className={({ isActive }) => `block px-4 py-3 rounded-xl text-base font-medium transition-colors flex items-center gap-3 ${isActive ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            Dashboard
+          </NavLink>
+          <NavLink 
+            to="/history"
+            onClick={closeMenu}
+            className={({ isActive }) => `block px-4 py-3 rounded-xl text-base font-medium transition-colors flex items-center gap-3 ${isActive ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
+          >
+            <History className="w-5 h-5" />
+            History
+          </NavLink>
+          <NavLink 
+            to="/profile"
+            onClick={closeMenu}
+            className={({ isActive }) => `block px-4 py-3 rounded-xl text-base font-medium transition-colors flex items-center gap-3 ${isActive ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'}`}
+          >
+            <img 
+              src={user?.user_metadata?.avatar_url || "https://img.icons8.com/?size=100&id=2yC9SZKcXDdX&format=png&color=000000"} 
+              alt="Profile" 
+              className="w-6 h-6 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+              referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "https://img.icons8.com/?size=100&id=2yC9SZKcXDdX&format=png&color=000000";
+              }}
+            />
+            Profile
+          </NavLink>
+          <div className="h-px bg-slate-200 dark:bg-slate-800 my-2"></div>
+          <button 
+            onClick={() => { logout(); closeMenu(); }}
+            className="w-full text-left px-4 py-3 rounded-xl text-base font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-3"
+          >
+            <LogOut className="w-5 h-5" />
+            Logout
+          </button>
+        </div>
+      )}
+    </nav>
+  );
+};
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
+
+  if (loading) return <Loading />;
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900 transition-colors">
+      <Navbar />
+      <main className="flex-1 container mx-auto px-4 py-8">
+        {children}
+      </main>
+      <Footer />
+    </div>
+  );
+};
 
 // --- Page Components ---
 
@@ -70,8 +234,8 @@ const DashboardPage = () => {
     }
     
     // 3. Configure Exam Settings
-    const questionCount = course.topics.length > 5 ? 35 : 15;
-    const timeLimit = course.topics.length > 5 ? 30 * 60 : 10 * 60; // 30 mins or 10 mins
+    const questionCount = course.questionCount;
+    const timeLimit = course.timeLimit * 60; // convert to seconds
     
     const examQuestions = allQuestions.slice(0, questionCount);
     
@@ -113,6 +277,29 @@ const DashboardPage = () => {
     }
   };
 
+  const handleStartQuiz = (e: React.MouseEvent | null, topic: Topic) => {
+    if (e) e.stopPropagation();
+    
+    let quizTopic = topic;
+    let initialTime = undefined;
+
+    // Use course-specific settings if available
+    if (currentCourse) {
+      // Shuffle and take UP TO the course's question count from THIS topic only
+      const shuffledQuestions = [...topic.questions].sort(() => Math.random() - 0.5);
+      const selectedQuestions = shuffledQuestions.slice(0, currentCourse.questionCount);
+      
+      quizTopic = {
+        ...topic,
+        questions: selectedQuestions
+      };
+      
+      initialTime = currentCourse.timeLimit * 60; // convert to seconds
+    }
+
+    navigate('/quiz', { state: { topic: quizTopic, initialTime } });
+  };
+
   return (
     <div className="space-y-12">
       <button 
@@ -128,27 +315,27 @@ const DashboardPage = () => {
       {/* AI Modal */}
       {showAiModal && aiTargetTopic && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-700">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Generate Questions</h3>
-              <button onClick={() => setShowAiModal(false)} className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
-                <X className="w-5 h-5 text-slate-500" />
+          <div className="bg-m3-surface dark:bg-slate-900 rounded-[2.5rem] shadow-2xl max-w-md w-full p-8 border border-m3-surface-variant dark:border-slate-800">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-2xl font-display font-bold text-m3-on-surface dark:text-white">Generate Questions</h3>
+              <button onClick={() => setShowAiModal(false)} className="p-2 hover:bg-m3-surface-variant dark:hover:bg-slate-800 rounded-full transition-colors">
+                <X className="w-6 h-6 text-m3-on-surface-variant" />
               </button>
             </div>
-            <p className="text-slate-600 dark:text-slate-400 mb-6">
-              Generate a unique 10-question quiz for <span className="font-semibold text-slate-900 dark:text-white">{aiTargetTopic.title}</span> using AI.
+            <p className="text-m3-on-surface-variant dark:text-slate-400 mb-8 leading-relaxed">
+              Generate a unique 10-question quiz for <span className="font-bold text-m3-primary dark:text-m3-primary-container">{aiTargetTopic.title}</span> using AI.
             </p>
-            <div className="space-y-3 mb-8">
-              <p className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Select Difficulty</p>
-              <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-4 mb-10">
+              <p className="text-xs font-display font-bold text-m3-on-surface-variant dark:text-slate-500 uppercase tracking-widest">Select Difficulty</p>
+              <div className="grid grid-cols-3 gap-3">
                 {(['Easy', 'Medium', 'Hard'] as Difficulty[]).map((diff) => (
                   <button
                     key={diff}
                     onClick={() => setAiDifficulty(diff)}
-                    className={`p-2 rounded-lg border text-sm font-medium transition-all ${
+                    className={`py-3 rounded-2xl border-2 font-display font-bold transition-all ${
                       aiDifficulty === diff 
-                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' 
-                        : 'border-slate-200 dark:border-slate-700 hover:border-blue-300 text-slate-600 dark:text-slate-300'
+                        ? 'border-m3-primary bg-m3-primary-container text-m3-on-primary-container' 
+                        : 'border-m3-surface-variant dark:border-slate-800 hover:border-m3-primary/30 text-m3-on-surface-variant dark:text-slate-400'
                     }`}
                   >
                     {diff}
@@ -158,7 +345,7 @@ const DashboardPage = () => {
             </div>
             <button
               onClick={handleGenerateAIQuestions}
-              className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-xl shadow-lg shadow-amber-600/20 transition-all transform active:scale-[0.98] flex items-center justify-center gap-2"
+              className="m3-button-primary w-full py-4 flex items-center justify-center gap-3 shadow-lg shadow-m3-primary/20"
             >
               <Sparkles className="w-5 h-5" />
               Generate Questions
@@ -174,43 +361,42 @@ const DashboardPage = () => {
         currentCourse={currentCourse} 
       />
 
-      <div className="max-w-6xl mx-auto">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-          <BookOpen className="w-6 h-6 text-blue-600" />
+      <div className="max-w-6xl mx-auto mt-16">
+        <h2 className="text-3xl font-display font-bold text-m3-on-surface dark:text-white mb-8 flex items-center gap-3">
+          <div className="p-2 bg-m3-primary-container rounded-xl">
+            <BookOpen className="w-7 h-7 text-m3-on-primary-container" />
+          </div>
           {currentCourse.title} Topics
         </h2>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {displayedTopics.map((topic) => (
             <div 
               key={topic.id}
-              onClick={() => navigate('/quiz', { state: { topic } })}
-              className="group relative bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 hover:border-blue-500/50 dark:hover:border-blue-500/50 transition-all cursor-pointer hover:shadow-xl hover:shadow-blue-900/5 dark:hover:shadow-blue-900/20 overflow-hidden"
+              onClick={() => handleStartQuiz(null, topic)}
+              className="group relative bg-white dark:bg-slate-900 rounded-[2rem] p-8 border border-m3-surface-variant dark:border-slate-800 hover:border-m3-primary/50 transition-all cursor-pointer hover:shadow-2xl hover:-translate-y-1 overflow-hidden"
             >
-              <div className="absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity">
-                <BookOpen className="w-24 h-24 text-blue-600 dark:text-blue-400" />
+              <div className="absolute -top-4 -right-4 p-4 opacity-[0.03] dark:opacity-[0.05] group-hover:opacity-[0.08] transition-opacity">
+                <BookOpen className="w-32 h-32 text-m3-primary" />
               </div>
               
               <div className="relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="inline-block px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-full">
+                <div className="flex items-center justify-between mb-6">
+                  <span className="inline-block px-4 py-1.5 bg-m3-secondary-container text-m3-on-secondary-container text-xs font-display font-bold rounded-full">
                     {topic.questions.length} Questions
                   </span>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                <h3 className="text-2xl font-display font-bold text-m3-on-surface dark:text-white mb-3 group-hover:text-m3-primary dark:group-hover:text-m3-primary-container transition-colors line-clamp-2">
                   {topic.title}
                 </h3>
-                <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 line-clamp-2">
+                <p className="text-m3-on-surface-variant dark:text-slate-400 text-sm mb-8 line-clamp-2 leading-relaxed">
                   Practice questions for {topic.title}.
                 </p>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate('/quiz', { state: { topic } });
-                    }}
-                    className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm transition-colors shadow-md shadow-blue-600/20"
+                    onClick={(e) => handleStartQuiz(e, topic)}
+                    className="m3-button-primary flex-1 py-3 text-sm"
                   >
                     Start Quiz
                   </button>
@@ -334,7 +520,7 @@ export default function App() {
             <Route path="/history" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
             <Route path="/quiz" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
             <Route path="/results" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
-            <Route path="/admin/migrate" element={<ProtectedRoute><MigrationTool /></ProtectedRoute>} />
+            <Route path="/admin004" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
             <Route path="*" element={<Navigate to="/" />} />

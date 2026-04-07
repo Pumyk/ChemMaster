@@ -37,8 +37,11 @@ export const Timer: React.FC<TimerProps> = ({ timeLeft, setTimeLeft, onTimeUp })
   useEffect(() => {
     if (timeLeft <= 0) {
       onTimeUp();
-      return;
     }
+  }, [timeLeft <= 0, onTimeUp]);
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
 
     // Play sound if time is running out (last 60 seconds)
     if (timeLeft <= 60) {
@@ -50,7 +53,7 @@ export const Timer: React.FC<TimerProps> = ({ timeLeft, setTimeLeft, onTimeUp })
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [timeLeft, onTimeUp, setTimeLeft]);
+  }, [timeLeft, setTimeLeft]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

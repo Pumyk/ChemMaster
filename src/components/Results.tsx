@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
 import { Topic } from '../data/questions';
 import { generatePDF } from '../utils/pdfGenerator';
-import { Download, RefreshCw, Home, Check, X, Loader2 } from 'lucide-react';
+import { Download, RefreshCw, Home, Check, X, Loader2, Trophy, LayoutDashboard, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
+import { db, OperationType, handleFirestoreError } from '../lib/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 interface ResultsProps {
   topic: Topic;
@@ -27,21 +28,19 @@ export const Results: React.FC<ResultsProps> = ({ topic, answers, score, totalQu
     if (reviewOnly || !user) return;
     
     const saveResults = async () => {
+      const path = 'quiz_results';
       try {
-        const { error } = await supabase
-          .from('quiz_results')
-          .insert({
-            user_id: user.id,
-            topic_id: topic.id,
-            topic_title: topic.title,
-            score,
-            total: total,
-            answers: answers // Supabase handles JSON automatically
-          });
-          
-        if (error) throw error;
+        await addDoc(collection(db, path), {
+          userId: user.id,
+          topicId: topic.id,
+          topicTitle: topic.title,
+          score,
+          total: total,
+          answers: answers,
+          createdAt: serverTimestamp()
+        });
       } catch (err) {
-        console.error("Failed to save quiz results:", err);
+        handleFirestoreError(err, OperationType.CREATE, path);
       }
     };
 
@@ -61,23 +60,29 @@ export const Results: React.FC<ResultsProps> = ({ topic, answers, score, totalQu
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 space-y-8">
-      <div className="bg-white dark:bg-slate-800 rounded-3xl p-8 md:p-12 border border-slate-200 dark:border-slate-700 text-center shadow-2xl transition-colors">
-        <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Quiz Completed!</h2>
-        <p className="text-slate-600 dark:text-slate-400 mb-8">Here's how you performed on {topic.title}</p>
-
-        <div className="relative w-48 h-48 mx-auto mb-8 flex items-center justify-center">
-          <div className="absolute inset-0 rounded-full border-8 border-slate-100 dark:border-slate-700"></div>
-          <div className={`absolute inset-0 rounded-full border-8 ${gradeColor.replace('text', 'border')} opacity-20`}></div>
-          <div className="text-center z-10">
-            <span className={`text-5xl font-bold ${gradeColor}`}>{percentage}%</span>
-            <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">{score} / {total}</p>
-          </div>
+    <div className="w-full max-w-4xl mx-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-8 duration-700 font-sans">
+      <div className="m3-card p-10 text-center mb-10 shadow-2xl relative overflow-hidden">
+        {/* Decorative background for score */}
+        <div className="absolute top-0 left-0 w-full h-2 bg-m3-surface-variant dark:bg-slate-800">
+          <div 
+            className={`h-full transition-all duration-1000 ease-out ${percentage >= 80 ? 'bg-emerald-500' : percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`}
+            style={{ width: `${percentage}%` }}
+          ></div>
         </div>
 
-        <h3 className={`text-2xl font-bold mb-8 ${gradeColor}`}>{gradeText}</h3>
+        <div className={`w-32 h-32 rounded-[2.5rem] mx-auto mb-8 flex items-center justify-center shadow-xl ${percentage >= 80 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : percentage >= 60 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
+          <Trophy className="w-16 h-16" />
+        </div>
+        
+        <h2 className="text-5xl font-display font-black text-m3-on-surface dark:text-white mb-4 tracking-tight">
+          {percentage}% Score
+        </h2>
+        <h3 className={`text-2xl font-display font-bold mb-6 ${gradeColor}`}>{gradeText}</h3>
+        <p className="text-2xl text-m3-on-surface-variant dark:text-slate-400 mb-10 font-display font-medium">
+          You got <span className="text-m3-primary dark:text-m3-primary-container font-bold">{score}</span> out of <span className="font-bold">{total}</span> questions correct.
+        </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg mx-auto">
+        <div className="flex flex-col md:flex-row gap-6 justify-center max-w-2xl mx-auto">
           <button
             onClick={async () => {
               setIsGenerating(true);
@@ -88,89 +93,103 @@ export const Results: React.FC<ResultsProps> = ({ topic, answers, score, totalQu
               }
             }}
             disabled={isGenerating}
-            className="flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-400 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20"
+            className="m3-button-primary flex-1 py-4 flex items-center justify-center gap-3 text-lg shadow-lg shadow-m3-primary/20 disabled:opacity-50"
           >
             {isGenerating ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-6 h-6 animate-spin" />
             ) : (
-              <Download className="w-5 h-5" />
+              <Download className="w-6 h-6" />
             )}
-            {isGenerating ? 'Generating...' : 'Download Report (PDF)'}
+            {isGenerating ? 'Generating...' : 'Download PDF'}
           </button>
           
           <button
             onClick={onRetry}
-            className="flex items-center justify-center gap-2 px-6 py-4 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-900 dark:text-white rounded-xl font-bold transition-all"
+            className="m3-button-tonal flex-1 py-4 flex items-center justify-center gap-3 text-lg"
           >
-            <RefreshCw className="w-5 h-5" />
+            <RefreshCw className="w-6 h-6" />
             Try Again
           </button>
         </div>
-        
+
         <button
           onClick={onHome}
-          className="mt-6 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 mx-auto transition-colors"
+          className="mt-8 text-m3-on-surface-variant dark:text-slate-500 hover:text-m3-primary dark:hover:text-m3-primary-container flex items-center gap-2 mx-auto transition-colors font-display font-bold"
         >
-          <Home className="w-4 h-4" />
+          <Home className="w-5 h-5" />
           Back to Topics
         </button>
       </div>
 
-      {/* Detailed Review Section */}
-      <div className="space-y-6">
-        <h3 className="text-2xl font-bold text-slate-900 dark:text-white px-2">Review Answers</h3>
-        {topic.questions.map((q, index) => {
-          const userAnswer = answers[q.id];
-          const isCorrect = userAnswer === q.correctAnswer;
-
-          return (
-            <div 
-              key={q.id} 
-              id={`question-card-${q.id}`}
-              className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-md transition-colors"
-            >
-              <div className="flex items-start gap-4">
-                <div className={`mt-1 p-1 rounded-full ${isCorrect ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
-                  {isCorrect ? <Check className="w-5 h-5" /> : <X className="w-5 h-5" />}
+      <div className="space-y-8">
+        <h3 className="text-3xl font-display font-bold text-m3-on-surface dark:text-white flex items-center gap-4 ml-2">
+          <div className="p-2 bg-m3-secondary-container rounded-xl">
+            <FileText className="w-7 h-7 text-m3-on-secondary-container" />
+          </div>
+          Detailed Review
+        </h3>
+        <div className="grid grid-cols-1 gap-6">
+          {topic.questions.map((q, idx) => {
+            const userAnswer = answers[q.id];
+            const isCorrect = userAnswer === q.correctAnswer;
+            
+            return (
+              <div 
+                key={q.id}
+                className={`m3-card p-8 border-l-8 transition-all hover:shadow-xl ${isCorrect ? 'border-emerald-500' : 'border-red-500'}`}
+              >
+                <div className="flex justify-between items-start gap-6 mb-6">
+                  <span className="text-sm font-display font-black text-m3-on-surface-variant dark:text-slate-500 uppercase tracking-widest bg-m3-surface-variant/30 dark:bg-slate-800/50 px-4 py-1.5 rounded-full">
+                    Question {idx + 1}
+                  </span>
+                  {isCorrect ? (
+                    <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-display font-bold bg-emerald-50 dark:bg-emerald-900/20 px-4 py-1.5 rounded-full border border-emerald-100 dark:border-emerald-900/30">
+                      <Check className="w-5 h-5" /> Correct
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-display font-bold bg-red-50 dark:bg-red-900/20 px-4 py-1.5 rounded-full border border-red-100 dark:border-red-900/30">
+                      <X className="w-5 h-5" /> Incorrect
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1">
-                  <p className="text-lg font-medium text-slate-900 dark:text-white mb-4">
-                    {index + 1}. {q.text}
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                    {q.options.map((opt, optIdx) => {
-                      let borderClass = "border-slate-200 dark:border-slate-700";
-                      let bgClass = "bg-slate-50 dark:bg-slate-900/50";
-                      let textClass = "text-slate-600 dark:text-slate-400";
+                
+                <p className="text-xl font-display font-bold text-m3-on-surface dark:text-white mb-8 leading-relaxed">{q.text}</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {q.options.map((opt, optIdx) => {
+                    let borderClass = "border-m3-surface-variant dark:border-slate-800";
+                    let bgClass = "bg-m3-surface dark:bg-slate-950";
+                    let textClass = "text-m3-on-surface dark:text-slate-300";
 
-                      if (optIdx === q.correctAnswer) {
-                        borderClass = "border-emerald-500";
-                        bgClass = "bg-emerald-50 dark:bg-emerald-900/20";
-                        textClass = "text-emerald-700 dark:text-emerald-400 font-semibold";
-                      } else if (optIdx === userAnswer && !isCorrect) {
-                        borderClass = "border-red-500";
-                        bgClass = "bg-red-50 dark:bg-red-900/20";
-                        textClass = "text-red-700 dark:text-red-400 font-semibold";
-                      }
+                    if (optIdx === q.correctAnswer) {
+                      borderClass = "border-emerald-500";
+                      bgClass = "bg-emerald-50 dark:bg-emerald-900/20";
+                      textClass = "text-emerald-700 dark:text-emerald-400 font-bold";
+                    } else if (optIdx === userAnswer && !isCorrect) {
+                      borderClass = "border-red-500";
+                      bgClass = "bg-red-50 dark:bg-red-900/20";
+                      textClass = "text-red-700 dark:text-red-400 font-bold";
+                    }
 
-                      return (
-                        <div key={optIdx} className={`p-3 rounded-lg border ${borderClass} ${bgClass} ${textClass} text-sm`}>
-                          {String.fromCharCode(65 + optIdx)}. {opt}
+                    return (
+                      <div key={optIdx} className={`p-4 rounded-xl border-2 ${borderClass} ${bgClass} ${textClass} font-display text-sm flex items-center gap-3`}>
+                        <div className={`w-6 h-6 rounded-full border flex items-center justify-center text-xs font-black ${optIdx === q.correctAnswer ? 'bg-emerald-500 text-white border-emerald-500' : optIdx === userAnswer ? 'bg-red-500 text-white border-red-500' : 'border-m3-surface-variant text-m3-on-surface-variant'}`}>
+                          {String.fromCharCode(65 + optIdx)}
                         </div>
-                      );
-                    })}
-                  </div>
+                        {opt}
+                      </div>
+                    );
+                  })}
+                </div>
 
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30">
-                    <p className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-1 uppercase tracking-wider">Explanation</p>
-                    <p className="text-sm text-blue-700 dark:text-blue-400 leading-relaxed">{q.explanation}</p>
-                  </div>
+                <div className="bg-m3-primary-container/30 dark:bg-slate-800/50 p-6 rounded-2xl border border-m3-primary-container/50 dark:border-slate-700">
+                  <p className="text-xs font-black text-m3-primary dark:text-m3-primary-container mb-2 uppercase tracking-widest">Explanation</p>
+                  <p className="text-sm text-m3-on-surface dark:text-slate-300 leading-relaxed font-display font-medium">{q.explanation}</p>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

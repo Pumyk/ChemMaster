@@ -1,26 +1,68 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  
+  --radius-3xl: 1.5rem;
+  --radius-4xl: 2rem;
+  
+  --color-m3-primary: #6750A4;
+  --color-m3-on-primary: #FFFFFF;
+  --color-m3-primary-container: #EADDFF;
+  --color-m3-on-primary-container: #21005D;
+  
+  --color-m3-secondary: #625B71;
+  --color-m3-on-secondary: #FFFFFF;
+  --color-m3-secondary-container: #E8DEF8;
+  --color-m3-on-secondary-container: #1D192B;
+  
+  --color-m3-tertiary: #7D5260;
+  --color-m3-on-tertiary: #FFFFFF;
+  --color-m3-tertiary-container: #FFD8E4;
+  --color-m3-on-tertiary-container: #31111D;
+  
+  --color-m3-surface: #FEF7FF;
+  --color-m3-on-surface: #1D1B20;
+  --color-m3-surface-variant: #E7E0EB;
+  --color-m3-on-surface-variant: #49454F;
 }
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 body {
-  @apply bg-slate-50 text-slate-900 min-h-screen transition-colors duration-300;
-  background-color: #f8fafc;
+  @apply bg-m3-surface text-m3-on-surface min-h-screen transition-colors duration-300 font-sans;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.1) 0, transparent 50%), 
-    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(103, 80, 164, 0.05) 0, transparent 50%), 
+    radial-gradient(at 100% 100%, rgba(125, 82, 96, 0.05) 0, transparent 50%);
   background-attachment: fixed;
 }
 
 .dark body {
-  @apply bg-slate-900 text-slate-100;
+  @apply bg-slate-950 text-slate-100;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(17, 24, 39, 1) 0, transparent 50%), 
-    radial-gradient(at 50% 0%, rgba(30, 58, 138, 0.3) 0, transparent 50%), 
-    radial-gradient(at 100% 0%, rgba(17, 24, 39, 1) 0, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(103, 80, 164, 0.1) 0, transparent 50%), 
+    radial-gradient(at 100% 100%, rgba(125, 82, 96, 0.1) 0, transparent 50%);
   background-attachment: fixed;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+}
+
+.m3-card {
+  @apply bg-white dark:bg-slate-900 rounded-3xl border border-m3-surface-variant dark:border-slate-800 shadow-sm transition-all duration-300;
+}
+
+.m3-card-elevated {
+  @apply bg-white dark:bg-slate-900 rounded-3xl shadow-md hover:shadow-xl transition-all duration-300 border border-transparent;
+}
+
+.m3-button-primary {
+  @apply bg-m3-primary text-m3-on-primary px-6 py-3 rounded-full font-display font-semibold shadow-sm hover:shadow-md active:scale-95 transition-all;
+}
+
+.m3-button-tonal {
+  @apply bg-m3-secondary-container text-m3-on-secondary-container px-6 py-3 rounded-full font-display font-semibold hover:opacity-90 active:scale-95 transition-all;
 }

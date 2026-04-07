@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { FlaskConical, LayoutDashboard, History, Sun, Moon, LogOut } from 'lucide-react';
+import { GraduationCap, LayoutDashboard, History, Sun, Moon, LogOut } from 'lucide-react';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
@@ -14,10 +14,10 @@ export const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-blue-600/20">
-            <FlaskConical className="w-5 h-5 text-white" />
+            <GraduationCap className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-emerald-600 dark:from-blue-400 dark:to-emerald-400">
-            ChemMaster Pro
+            PrepMaster
           </span>
         </div>
         

@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Award, ChevronRight, Loader2, History } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { db, OperationType, handleFirestoreError } from '../lib/firebase';
+import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 
 interface QuizResult {
-  id: number;
-  topic_id: string;
-  topic_title: string;
+  id: string;
+  topicId: string;
+  topicTitle: string;
   score: number;
   total: number;
-  answers: string; // JSON string or object depending on how Supabase returns it
-  created_at: string;
+  answers: string; // JSON string
+  createdAt: string;
 }
 
 interface QuizHistoryProps {
@@ -25,68 +26,67 @@ export const QuizHistory: React.FC<QuizHistoryProps> = ({ onViewResult }) => {
   useEffect(() => {
     if (!user) return;
 
-    const fetchHistory = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('quiz_results')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+    const path = 'quiz_results';
+    const q = query(
+      collection(db, path),
+      where('userId', '==', user.id),
+      orderBy('createdAt', 'desc')
+    );
 
-        if (error) throw error;
-        
-        // Ensure answers is a string if it comes back as an object, or handle it in App.tsx
-        // App.tsx expects a JSON string for answers in handleViewPastResult: JSON.parse(result.answers)
-        // If Supabase returns an object (jsonb), we might need to stringify it or update App.tsx.
-        // Let's check App.tsx. It does JSON.parse(result.answers).
-        // If Supabase returns an object, JSON.parse([object Object]) will fail.
-        // So we should normalize it here.
-        
-        const normalizedHistory = (data || []).map(item => ({
-          ...item,
-          answers: typeof item.answers === 'string' ? item.answers : JSON.stringify(item.answers)
-        }));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const results: QuizResult[] = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          topicId: data.topicId,
+          topicTitle: data.topicTitle,
+          score: data.score,
+          total: data.total,
+          answers: typeof data.answers === 'string' ? data.answers : JSON.stringify(data.answers),
+          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt
+        };
+      });
+      setHistory(results);
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
+      setLoading(false);
+    });
 
-        setHistory(normalizedHistory);
-      } catch (err) {
-        console.error("Failed to fetch history:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchHistory();
+    return () => unsubscribe();
   }, [user]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-12 h-12 animate-spin text-m3-primary" />
       </div>
     );
   }
 
   if (history.length === 0) {
     return (
-      <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 transition-colors">
-        <History className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No History Yet</h3>
-        <p className="text-slate-500 dark:text-slate-400">Complete your first quiz to see your results here!</p>
+      <div className="text-center py-20 m3-card transition-colors">
+        <History className="w-20 h-20 text-m3-surface-variant mx-auto mb-6" />
+        <h3 className="text-2xl font-display font-bold text-m3-on-surface dark:text-white mb-3">No History Yet</h3>
+        <p className="text-m3-on-surface-variant dark:text-slate-400 font-display">Complete your first quiz to see your results here!</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-        <History className="w-6 h-6 text-blue-600" />
+    <div className="space-y-8 font-sans">
+      <h2 className="text-3xl font-display font-bold text-m3-on-surface dark:text-white mb-8 flex items-center gap-3">
+        <div className="p-2 bg-m3-primary-container rounded-xl">
+          <History className="w-7 h-7 text-m3-on-primary-container" />
+        </div>
         Your Quiz History
       </h2>
       
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-6">
         {history.map((item) => {
           const percentage = Math.round((item.score / item.total) * 100);
-          const date = new Date(item.created_at).toLocaleDateString(undefined, {
+          const date = new Date(item.createdAt).toLocaleDateString(undefined, {
             year: 'numeric',
             month: 'short',
             day: 'numeric',
@@ -98,37 +98,37 @@ export const QuizHistory: React.FC<QuizHistoryProps> = ({ onViewResult }) => {
             <div 
               key={item.id}
               onClick={() => onViewResult?.(item)}
-              className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer group"
+              className="m3-card p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 cursor-pointer group hover:shadow-xl hover:-translate-y-1"
             >
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-xl ${percentage >= 80 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : percentage >= 60 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
-                  <Award className="w-6 h-6" />
+              <div className="flex items-center gap-6">
+                <div className={`p-4 rounded-2xl ${percentage >= 80 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : percentage >= 60 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600' : 'bg-red-100 dark:bg-red-900/30 text-red-600'}`}>
+                  <Award className="w-8 h-8" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{item.topic_title}</h4>
-                  <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
+                  <h4 className="text-xl font-display font-bold text-m3-on-surface dark:text-white group-hover:text-m3-primary dark:group-hover:text-m3-primary-container transition-colors">{item.topicTitle}</h4>
+                  <div className="flex items-center gap-3 text-sm text-m3-on-surface-variant dark:text-slate-500 mt-2 font-display font-medium">
+                    <span className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
                       {date}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between md:justify-end gap-8 flex-1 md:flex-none">
-                <div className="text-right min-w-[100px]">
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{percentage}%</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold mb-2">
+              <div className="flex items-center justify-between md:justify-end gap-10 flex-1 md:flex-none">
+                <div className="text-right min-w-[120px]">
+                  <p className="text-3xl font-display font-bold text-m3-on-surface dark:text-white">{percentage}%</p>
+                  <p className="text-xs text-m3-on-surface-variant dark:text-slate-500 uppercase tracking-widest font-display font-bold mb-3">
                     {item.score} / {item.total} Correct
                   </p>
-                  <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                  <div className="w-full bg-m3-surface-variant dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
                     <div 
-                      className={`h-2 rounded-full ${percentage >= 80 ? 'bg-emerald-500' : percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`} 
+                      className={`h-full rounded-full transition-all duration-1000 ${percentage >= 80 ? 'bg-emerald-500' : percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`} 
                       style={{ width: `${percentage}%` }}
                     ></div>
                   </div>
                 </div>
-                <ChevronRight className="w-5 h-5 text-slate-300 dark:text-slate-600 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-all group-hover:translate-x-1" />
+                <ChevronRight className="w-6 h-6 text-m3-on-surface-variant dark:text-slate-600 group-hover:text-m3-primary dark:group-hover:text-m3-primary-container transition-all group-hover:translate-x-2" />
               </div>
             </div>
           );

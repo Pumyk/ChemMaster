@@ -12,6 +12,6 @@ export const Footer = () => (
         <FileText className="w-3 h-3" /> Terms of Service
       </Link>
     </div>
-    <p>&copy; {new Date().getFullYear()} ChemMaster Pro. All rights reserved.</p>
+    <p>&copy; {new Date().getFullYear()} PrepMaster. All rights reserved.</p>
   </footer>
 );

@@ -1,24 +1,20 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import { User as SupabaseUser } from '@supabase/supabase-js';
+import { auth, db, googleProvider } from '../lib/firebase';
+import { onAuthStateChanged, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface User {
   id: string;
   email: string;
   name?: string;
-  user_metadata?: {
-    name?: string;
-    department?: string;
-    phone?: string;
-    avatar_url?: string;
-    [key: string]: any;
-  };
+  photoURL?: string;
+  user_metadata?: any;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (user: User) => void;
-  logout: () => void;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
   loading: boolean;
   refreshUser: () => Promise<void>;
 }
@@ -29,79 +25,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchUserProfile = async (firebaseUser: FirebaseUser) => {
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    const userDoc = await getDoc(userDocRef);
+    
+    let profileData = {};
+    if (userDoc.exists()) {
+      profileData = userDoc.data();
+    } else {
+      // Create initial profile if it doesn't exist
+      profileData = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL,
+        createdAt: new Date().toISOString()
+      };
+      await setDoc(userDocRef, profileData);
+    }
+
+    setUser({
+      id: firebaseUser.uid,
+      email: firebaseUser.email || '',
+      name: firebaseUser.displayName || firebaseUser.email?.split('@')[0],
+      photoURL: firebaseUser.photoURL || undefined,
+      user_metadata: profileData
+    });
+  };
+
   const refreshUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      setUser({
-        id: session.user.id,
-        email: session.user.email || '',
-        name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-        user_metadata: session.user.user_metadata
-      });
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      await fetchUserProfile(currentUser);
     }
   };
 
   useEffect(() => {
-    let mounted = true;
-
-    // Force stop loading after 5s to prevent infinite loading screen
-    const timeout = setTimeout(() => {
-      if (mounted) {
-        console.warn("Auth check timed out, forcing app load");
-        setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        await fetchUserProfile(firebaseUser);
+      } else {
+        setUser(null);
       }
-    }, 5000);
-
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (mounted) {
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-            user_metadata: session.user.user_metadata
-          });
-        }
-        setLoading(false);
-      }
-    }).catch(err => {
-      console.error("Auth session check failed:", err);
-      if (mounted) setLoading(false);
+      setLoading(false);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (mounted) {
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0],
-            user_metadata: session.user.user_metadata
-          });
-        } else {
-          setUser(null);
-        }
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      mounted = false;
-      clearTimeout(timeout);
-      subscription.unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
-  const login = (userData: User) => {
-    // This is now handled by onAuthStateChange, but keeping for compatibility if needed
-    setUser(userData);
+  const login = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+    } catch (error) {
+      console.error("Login failed:", error);
+    }
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
 
   return (
